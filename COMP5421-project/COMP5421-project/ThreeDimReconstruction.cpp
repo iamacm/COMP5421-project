@@ -1,28 +1,65 @@
 #include "stdafx.h"
+#include <windows.h>
+#include <algorithm> 
 #include "ThreeDimReconstruction.h"
 
-
-ThreeDimReconstruction::ThreeDimReconstruction(char* imgPath1, char* imgPath2) {
-	this->imgPath[0] = imgPath1;
-	this->imgPath[1] = imgPath2;
+#define RESIZE_RATIO		0.45		// Relative to the screen size
+#define	SCREEN_WIDTH		GetSystemMetrics(SM_CXSCREEN)
+#define	SCREEN_HEIGHT		GetSystemMetrics(SM_CYSCREEN)
+ThreeDimReconstruction::ThreeDimReconstruction(char* imgPath1, char* imgPath2)
+{
+	// Store the image path
+	this->img[0].path = imgPath1;
+	this->img[1].path = imgPath2;
 
 	// Read the file
-	img[0] = imread(this->imgPath[0], IMREAD_COLOR);
-	img[1] = imread(this->imgPath[1], IMREAD_COLOR);
-	if (img[0].empty() || img[1].empty()) {
+	this->img[0].mat = imread(this->img[0].path, IMREAD_COLOR);
+	this->img[1].mat = imread(this->img[1].path, IMREAD_COLOR);
+	if (this->img[0].mat.empty() || this->img[1].mat.empty()) {
 		throw new Exception();
 	}
 
+	// Name the image
+	this->img[0].name = "Image " + this->img[0].path;
+	this->img[1].name = "Image " + this->img[1].path;
+	if (this->img[0].name == this->img[1].name) {
+		this->img[1].name += " (1)";
+	}
+
+	printf("Screen resolution: %d * %d\n", SCREEN_WIDTH, SCREEN_HEIGHT);
 	printf("Loaded files successfully!\n");
-	printf("img[0]: %d * %d\n", img[0].cols, img[0].rows);
-	printf("img[1]: %d * %d\n", img[1].cols, img[1].rows);
+	for (int i = 0; i < 2; ++i) {
+		printf("img[%d]: %d * %d\n", i, this->img[i].mat.cols, this->img[i].mat.rows);
+	}
+	
 }
 
-void ThreeDimReconstruction::show(void) {
-	
-	namedWindow("Image " + this->imgPath[0], WINDOW_NORMAL | WINDOW_KEEPRATIO); // Create a window for display.
-	imshow("Image " + this->imgPath[0], img[0]); // Show our image inside it.
 
-	namedWindow("Image " + this->imgPath[1], WINDOW_NORMAL | WINDOW_KEEPRATIO); // Create a window for display.
-	imshow("Image " + this->imgPath[1], img[1]); // Show our image inside it.
+// Display the image of ID with aspect ratio kept
+void ThreeDimReconstruction::show(int id) {
+	const int MAX_WIDTH = SCREEN_WIDTH * RESIZE_RATIO;
+	const int MAX_HEIGHT = SCREEN_HEIGHT * RESIZE_RATIO;
+
+	Img thisImg = this->img[id];
+	int width = thisImg.mat.cols;
+	int height = thisImg.mat.rows;
+	if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+		const double resize_ratio = min((double)MAX_WIDTH / width, (double)MAX_HEIGHT/ height);
+		width *= resize_ratio;
+		height *= resize_ratio;
+	}
+	
+	namedWindow(this->img[id].name, WINDOW_KEEPRATIO); // Create a window for display.
+	resizeWindow(this->img[id].name, width, height);		// Resize the image
+	imshow(this->img[id].name, this->img[id].mat); // Show our image inside it.
+}
+
+void ThreeDimReconstruction::showAll(void) {
+	for (int i = 0; i < 2; ++i) {
+		this->show(i);
+	}
+}
+
+void ThreeDimReconstruction::wait(void) {
+	waitKey(0); // Wait for a keystroke in the window
 }

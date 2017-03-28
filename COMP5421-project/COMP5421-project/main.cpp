@@ -28,10 +28,10 @@ int main(int argc, char** argv)
 	else {
 		threeDimRec = new ThreeDimReconstruction(argv[1], argv[2]);
 	}
-	threeDimRec->show();
+	threeDimRec->showAll();
+	threeDimRec->wait();
 
-
-	waitKey(0); // Wait for a keystroke in the window
+	
 	return 0;
 }
 

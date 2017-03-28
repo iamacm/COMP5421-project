@@ -15,12 +15,15 @@ class ThreeDimReconstruction {
 
 public:
 	ThreeDimReconstruction(char* imgPath1, char* imgPath2);
-	void show(void);
-
+	void show(int id);	// Show image of id
+	void showAll(void);	// Show all images
+	void wait(void);
+	struct Img {
+		Mat mat;
+		string path, name;
+	};
 private:
-	int x;
-	Mat img[2];	// The two images for 3D reconstruction
-	string imgPath[2];
+	ThreeDimReconstruction::Img img[2];
 };
 
 
