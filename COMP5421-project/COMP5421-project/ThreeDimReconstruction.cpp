@@ -4,11 +4,14 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "ThreeDimReconstruction.h"
 
-#define RESIZE_RATIO		0.50		// Relative to the screen size
-#define	SCREEN_WIDTH		GetSystemMetrics(SM_CXSCREEN)
-#define	SCREEN_HEIGHT		GetSystemMetrics(SM_CYSCREEN)
+
+#define	SCREEN_WIDTH				GetSystemMetrics(SM_CXSCREEN)
+#define	SCREEN_HEIGHT				GetSystemMetrics(SM_CYSCREEN)
 
 // Constructor of Img
+ThreeDimReconstruction::Img::Img(void) {
+
+}
 
 ThreeDimReconstruction::Img::Img(string path) {
 	// Store the image path
@@ -26,9 +29,9 @@ ThreeDimReconstruction::Img::Img(string path) {
 }
 
 // Display the image of ID with aspect ratio kept
-void ThreeDimReconstruction::Img::show(void) {
-	const int MAX_WIDTH = SCREEN_WIDTH * RESIZE_RATIO;
-	const int MAX_HEIGHT = SCREEN_HEIGHT * RESIZE_RATIO;
+void ThreeDimReconstruction::Img::show(float resizeRatio) {
+	const int MAX_WIDTH = SCREEN_WIDTH * resizeRatio;
+	const int MAX_HEIGHT = SCREEN_HEIGHT * resizeRatio;
 
 	int width = this->mat.cols;
 	int height = this->mat.rows;
@@ -43,6 +46,14 @@ void ThreeDimReconstruction::Img::show(void) {
 	imshow(this->name, this->mat); // Show our image inside it.
 
 	printf("\"%s\" displayed\n", this->name.c_str());
+}
+
+// Display an image with another image together in the same window, horizontally merged
+void ThreeDimReconstruction::Img::showWith(ThreeDimReconstruction::Img anotherImg, float resizeRatio) {
+	Img bothImg;
+	hconcat(this->mat, anotherImg.mat, bothImg.mat);
+	bothImg.name = this->name + " with " + anotherImg.name;
+	bothImg.show(resizeRatio);
 }
 
 ThreeDimReconstruction::ThreeDimReconstruction(char* imgPath1, char* imgPath2)
@@ -84,8 +95,10 @@ void ThreeDimReconstruction::process(void) {
 	this->show(imgFiltered);
 	this->wait();
 	*/
+	this->img[0].showWith(this->img[1]);
+	this->wait();
 }
 
-void ThreeDimReconstruction::FeatureDetection::detectHarrisCorner(Img src, Mat dst, bool output) {
+void ThreeDimReconstruction::FeatureDetector::detectHarrisCorner(Img src, Img dst, bool output) {
 	
 }

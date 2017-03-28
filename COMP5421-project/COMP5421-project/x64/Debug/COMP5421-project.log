@@ -1,10 +1,10 @@
 ﻿  ThreeDimReconstruction.cpp
-c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(30): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(30): warning C4244: 'initializing': conversion from 'double' to 'const int', possible loss of data
-c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(31): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(31): warning C4244: 'initializing': conversion from 'double' to 'const int', possible loss of data
-c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(37): warning C4244: '*=': conversion from 'const double' to 'int', possible loss of data
-c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(38): warning C4244: '*=': conversion from 'const double' to 'int', possible loss of data
+c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(33): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(33): warning C4244: 'initializing': conversion from 'float' to 'const int', possible loss of data
+c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(34): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(34): warning C4244: 'initializing': conversion from 'float' to 'const int', possible loss of data
+c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(40): warning C4244: '*=': conversion from 'const double' to 'int', possible loss of data
+c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(41): warning C4244: '*=': conversion from 'const double' to 'int', possible loss of data
   Generating Code...
   Compiling...
   main.cpp

@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 
+
 using namespace cv;
 using namespace std;
 
@@ -15,24 +16,32 @@ class ThreeDimReconstruction {
 	// Sub-class Img
 	class Img {
 	public:
+		// Constructors
+		Img(void);
 		Img(string path);
-		void show(void);
+		// Methods
+		void show(float resizeRatio = 0.50);
+		void showWith(Img img, float resizeRatio = 0.95);
+		// Properties
 		Mat mat;
 		string path, name;
 	};
 
-	class FeatureDetection {
-		static void detectHarrisCorner(Img src, Mat dst, bool output);
+	// Sub-class FeatureDetection
+	class FeatureDetector {
+		static void detectHarrisCorner(Img src, Img dst, bool output);
 	};
 public:
+	// Constructors
 	ThreeDimReconstruction(char* imgPath1, char* imgPath2);
-	//void show(Img img);	// Show image of id
+	// Methods
 	void showOriginalImg(void);	// Show all images
 	void process(void);
 	void wait(void);
 	
 	
 private:
+	// Properties
 	vector<ThreeDimReconstruction::Img> img;	// ARRAY of Img*
 };
 
