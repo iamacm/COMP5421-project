@@ -8,7 +8,7 @@
 #include <opencv2/highgui.hpp>
 #include <iostream>
 #include "ThreeDimReconstruction.h"
-
+#include <thread>
 using namespace cv;
 using namespace std;
 
@@ -28,8 +28,13 @@ int main(int argc, char** argv)
 	else {
 		threeDimRec = new ThreeDimReconstruction(argv[1], argv[2]);
 	}
-	threeDimRec->showAll();
-	threeDimRec->wait();
+
+	thread t1(&ThreeDimReconstruction::showOriginalImg, threeDimRec);
+	thread t2(&ThreeDimReconstruction::process, threeDimRec);
+	//thread t3(&ThreeDimReconstruction::wait, threeDimRec);
+
+	t1.join();
+	t2.join();
 
 	
 	return 0;

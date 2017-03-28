@@ -12,18 +12,28 @@ using namespace cv;
 using namespace std;
 
 class ThreeDimReconstruction {
-
-public:
-	ThreeDimReconstruction(char* imgPath1, char* imgPath2);
-	void show(int id);	// Show image of id
-	void showAll(void);	// Show all images
-	void wait(void);
-	struct Img {
+	// Sub-class Img
+	class Img {
+	public:
+		Img(string path);
+		void show(void);
 		Mat mat;
 		string path, name;
 	};
+
+	class FeatureDetection {
+		static void detectHarrisCorner(Img src, Mat dst, bool output);
+	};
+public:
+	ThreeDimReconstruction(char* imgPath1, char* imgPath2);
+	//void show(Img img);	// Show image of id
+	void showOriginalImg(void);	// Show all images
+	void process(void);
+	void wait(void);
+	
+	
 private:
-	ThreeDimReconstruction::Img img[2];
+	vector<ThreeDimReconstruction::Img> img;	// ARRAY of Img*
 };
 
 
