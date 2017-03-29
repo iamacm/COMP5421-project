@@ -20,8 +20,8 @@ class ThreeDimReconstruction {
 		Img(void);
 		Img(string path);
 		// Methods
-		void show(float resizeRatio = 0.50);
-		void showWith(Img img, float resizeRatio = 0.95);
+		void show(float resizeRatio = 0.50) const;
+		void showWith(Img img, float resizeRatio = 0.95) const;
 		// Properties
 		Mat mat;
 		string path, name;
@@ -29,15 +29,17 @@ class ThreeDimReconstruction {
 
 	// Sub-class FeatureDetection
 	class FeatureDetector {
-		static void detectHarrisCorner(Img src, Img dst, bool output);
+	public:
+		static void nonMaxSuppression(const Img src, Img& dst);
+		static vector<Point2d> detectHarrisCorner(const Img src, Img& dst, Img& dstNorm, bool showResult = true);
 	};
 public:
 	// Constructors
 	ThreeDimReconstruction(char* imgPath1, char* imgPath2);
 	// Methods
-	void showOriginalImg(void);	// Show all images
+	void showOriginalImg(void) const;	// Show all images
 	void process(void);
-	void wait(void);
+	void wait(void) const;
 	
 	
 private:
