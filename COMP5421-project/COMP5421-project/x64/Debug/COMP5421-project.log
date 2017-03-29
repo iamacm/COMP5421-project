@@ -7,8 +7,8 @@ c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project
 c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(41): warning C4244: '*=': conversion from 'const double' to 'int', possible loss of data
 c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(100): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
 c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(100): warning C4267: 'initializing': conversion from 'size_t' to 'const int', possible loss of data
-c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(124): warning C4305: 'initializing': truncation from 'double' to 'float'
-c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(207): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'unsigned __int64'
-  c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(207): note: consider using '%zd' in the format string
+c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(128): warning C4305: 'initializing': truncation from 'double' to 'float'
+c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(211): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'unsigned __int64'
+  c:\users\kenneth au\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(211): note: consider using '%zd' in the format string
   COMP5421-project.vcxproj -> C:\Users\Kenneth Au\Documents\COMP5421-project\COMP5421-project\x64\Debug\COMP5421-project.exe
   COMP5421-project.vcxproj -> C:\Users\Kenneth Au\Documents\COMP5421-project\COMP5421-project\x64\Debug\COMP5421-project.pdb (Full PDB)

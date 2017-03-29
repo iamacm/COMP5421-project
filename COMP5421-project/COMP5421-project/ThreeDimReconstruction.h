@@ -31,7 +31,7 @@ class ThreeDimReconstruction {
 	class FeatureDetector {
 	public:
 		static void nonMaxSuppression(const Img src, Img& dst);
-		static vector<Point2d> detectHarrisCorner(const Img src, Img& dst, Img& dstNorm, bool showResult = true);
+		static vector<Point2d> detectHarrisCorner(const Img src, bool showResult = true);
 	};
 public:
 	// Constructors

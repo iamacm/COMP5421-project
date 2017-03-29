@@ -98,13 +98,17 @@ void ThreeDimReconstruction::process(void) {
 	
 	//this->wait();
 	const int imgCount = this->img.size();
-	vector<Img> dst(imgCount), dstNorm(imgCount);
-	
+	vector<vector<Point>> imgCorners;
+	vector<Img> imgCornersCircled(this->img.size());
 
 	for (int i = 0; i < imgCount; ++i) {
-		ThreeDimReconstruction::FeatureDetector::detectHarrisCorner(this->img[i], dst[i], dstNorm[i]);
-		//dstNorm[i].name = "dstNorm of image " + this->img[i].name;
-		//dstNorm[i].show();
+		vector<Point2d> corners = ThreeDimReconstruction::FeatureDetector::detectHarrisCorner(this->img[i]);
+		imgCornersCircled[i].mat = this->img[i].mat.clone();
+		for (const Point pt : corners) {
+			circle(imgCornersCircled[i].mat, pt, 15, Scalar(0, 0, 255), 5);
+		}
+		imgCornersCircled[i].name = this->img[i].name + " with cornered circled";
+		imgCornersCircled[i].show();
 	}
 
 	this->wait();
@@ -115,7 +119,7 @@ void ThreeDimReconstruction::FeatureDetector::nonMaxSuppression(const Img src, I
 	cv::dilate(src.mat, dst.mat, Mat());
 	//cv::compare(src.mat, dst.mat, dst.mat, cv::CMP_GE);
 }
-vector<Point2d> ThreeDimReconstruction::FeatureDetector::detectHarrisCorner(const Img src, Img& dst, Img& dstNorm, bool showResult) {
+vector<Point2d> ThreeDimReconstruction::FeatureDetector::detectHarrisCorner(const Img src, bool showResult) {
 	/// Result
 	vector<Point2d> cornerPoints;
 	/// Detector parameters
@@ -124,7 +128,7 @@ vector<Point2d> ThreeDimReconstruction::FeatureDetector::detectHarrisCorner(cons
 	const float thresholdVal = 0.00005;
 	const double k = 0.04;
 
-	Img srcGray, thresholdedBinary, thresholded, thresholdedDilated, thresholdedDilatedBinary, localMaxBinary;
+	Img dst, dstNorm, srcGray, thresholdedBinary, thresholded, thresholdedDilated, thresholdedDilatedBinary, localMaxBinary;
 	cvtColor(src.mat, srcGray.mat, CV_BGR2GRAY);
 
 	const Size imageSize = srcGray.mat.size();
@@ -167,7 +171,7 @@ vector<Point2d> ThreeDimReconstruction::FeatureDetector::detectHarrisCorner(cons
 				localMaxBinary.mat.at<Vec3b>(i, j)[2] = isLocalMaxima ? 0 : 100;
 
 				if (isLocalMaxima) {
-					cornerPoints.push_back(Point2d(i, j));
+					cornerPoints.push_back(Point2d(j, i));
 				}
 
 			}
@@ -191,7 +195,7 @@ vector<Point2d> ThreeDimReconstruction::FeatureDetector::detectHarrisCorner(cons
 	/// Showing the result
 	if (showResult) {
 		dstNorm.name = "dstNorm of image " + src.name;
-		dstNorm.show();
+		//dstNorm.show();
 
 		thresholdedBinary.name = "Thresholded mask of image " + src.name;
 		//thresholdedBinary.show();
@@ -201,7 +205,7 @@ vector<Point2d> ThreeDimReconstruction::FeatureDetector::detectHarrisCorner(cons
 		thresholdedBinary.showWith(thresholdedDilatedBinary);
 
 		localMaxBinary.name = "localMax of image " + src.name;
-		localMaxBinary.show();
+		//localMaxBinary.show();
 	}
 
 	printf("%d corner(s) detected!\n", cornerPoints.size());
