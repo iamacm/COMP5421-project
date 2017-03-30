@@ -1,9 +1,11 @@
 #include "stdafx.h"
 #include <windows.h>
 #include <algorithm> 
+#include <stdint.h>
+#include <opencv2/opencv.hpp>
+#include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "ThreeDimReconstruction.h"
-
 
 #define	SCREEN_WIDTH				GetSystemMetrics(SM_CXSCREEN)
 #define	SCREEN_HEIGHT				GetSystemMetrics(SM_CYSCREEN)
@@ -17,7 +19,6 @@ ThreeDimReconstruction::Img::Img(string path) {
 	// Store the image path
 	this->path = path;
 	// Read the file
-	this->mat = imread(this->path, IMREAD_COLOR);
 	this->mat = imread(this->path, IMREAD_COLOR);
 	if (this->mat.empty()) {
 		throw new Exception();
@@ -41,7 +42,7 @@ void ThreeDimReconstruction::Img::show(float resizeRatio) const {
 		height *= resize_ratio;
 	}
 
-	namedWindow(this->name, WINDOW_KEEPRATIO); // Create a window for display.
+	namedWindow(this->name, CV_WINDOW_NORMAL); // Create a window for display.
 	resizeWindow(this->name, width, height);		// Resize the image
 	imshow(this->name, this->mat); // Show our image inside it.
 
@@ -102,13 +103,14 @@ void ThreeDimReconstruction::process(void) {
 	vector<Img> imgCornersCircled(this->img.size());
 
 	for (int i = 0; i < imgCount; ++i) {
-		vector<Point2d> corners = ThreeDimReconstruction::FeatureDetector::detectHarrisCorner(this->img[i]);
+		vector<Point2d> corners = ThreeDimReconstruction::FeatureDetector::detectHarrisCorner(this->img[i], false);
 		imgCornersCircled[i].mat = this->img[i].mat.clone();
 		for (const Point pt : corners) {
 			circle(imgCornersCircled[i].mat, pt, 15, Scalar(0, 0, 255), 5);
 		}
 		imgCornersCircled[i].name = this->img[i].name + " with cornered circled";
 		imgCornersCircled[i].show();
+		
 	}
 
 	this->wait();
