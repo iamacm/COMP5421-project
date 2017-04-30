@@ -31,7 +31,7 @@ int maintest(int argc, char** argv)
 
 	if (image.empty()) // Check for invalid input
 	{
-		cout << "Could not open or find the image " << argv[1] << std::endl;
+		cout << "Could not open or find the image " << argv[1] << endl;
 		return -1;
 	}
 

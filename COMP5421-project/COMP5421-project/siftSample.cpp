@@ -102,17 +102,16 @@ int main(int argc, char** argv) {
 	vector<KeyPoint> keypoints2;
 	Mat descriptors2;
 
-	Mat originalGrayImage = imread(filename[0], CV_LOAD_IMAGE_GRAYSCALE);
-	if (!originalGrayImage.data) {
-		cerr << "gray image load error" << endl;
-		return -1;
-	}
+	
+	Mat originalGrayImage;
 	Mat originalColorImage = imread(filename[0], CV_LOAD_IMAGE_ANYCOLOR | CV_LOAD_IMAGE_ANYDEPTH);
 	if (!originalColorImage.data) {
 		cerr << "color image open error" << endl;
 		return -1;
 	}
-	Mat newGrayImage = imread(filename[1], CV_LOAD_IMAGE_GRAYSCALE);
+	cv::cvtColor(originalColorImage, originalGrayImage, CV_BGR2GRAY);
+
+	Mat newGrayImage;
 	if (!originalGrayImage.data) {
 		cerr << "gray image load error" << endl;
 		return -1;
@@ -126,9 +125,7 @@ int main(int argc, char** argv) {
 	namedWindow("mywindow", CV_WINDOW_NORMAL);
 	imshow("mywindow", originalColorImage);
 
-	detector->detect(originalGrayImage, keypoints2);
-	extractor->compute(originalGrayImage, keypoints2, descriptors2);
-	printf("original image:%d keypoints are found.\n", (int)keypoints2.size());
+	
 
 
 
@@ -136,7 +133,7 @@ int main(int argc, char** argv) {
 	Size sz = Size(newColorImage.size().width + originalColorImage.size().width, newColorImage.size().height + originalColorImage.size().height);
 	Mat matchingImage = Mat::zeros(sz, CV_8UC3);
 
-	// Draw camera frame
+	// Draw camera framehaha
 	Mat roi1 = Mat(matchingImage, Rect(0, 0, newColorImage.size().width, newColorImage.size().height));
 	newColorImage.copyTo(roi1);
 	// Draw original image
@@ -148,6 +145,13 @@ int main(int argc, char** argv) {
 	vector<DMatch> matches;
 
 	// Detect keypoints
+
+
+	detector->detect(originalGrayImage, keypoints2);
+	extractor->compute(originalGrayImage, keypoints2, descriptors2);
+	printf("original image:%d keypoints are found.\n", (int)keypoints2.size());
+
+
 	detector->detect(newGrayImage, keypoints1);
 	extractor->compute(newGrayImage, keypoints1, descriptors1);
 
@@ -183,12 +187,13 @@ int main(int argc, char** argv) {
 		Point2f to = Point(newColorImage.size().width + pt2.x, newColorImage.size().height + pt2.y);
 		line(matchingImage, from, to, Scalar(0, 0, 255), 5);
 	}
+	
+
 	namedWindow("matching Image", CV_WINDOW_NORMAL);
 	// Display mathing image
 	imshow("matching Image", matchingImage);
-	imwrite("matching.png", matchingImage);
+	imwrite("matching.jpg", matchingImage);
 
-	
 
 	waitKey(0);
 
