@@ -17,8 +17,10 @@ class ThreeDimReconstruction {
 	public:
 		// Constructors
 		Img(void);
+		Img(const ThreeDimReconstruction::Img& img);	// Deep copy
 		Img(string path);
 		// Methods
+		ThreeDimReconstruction::Img clone() const;
 		void show(float resizeRatio = 0.50) const;
 		void showWith(Img img, float resizeRatio = 0.95) const;
 		// Properties
@@ -27,10 +29,11 @@ class ThreeDimReconstruction {
 	};
 
 	// Sub-class FeatureDetection
-	class FeatureDetector {
+	class FeatureDetectors {
 	public:
 		static void nonMaxSuppression(const Img src, Img& dst);
 		static vector<Point2d> detectHarrisCorner(const Img src, bool showResult = true);
+		static vector<pair<KeyPoint, Mat>> detectSIFT(const Img src, bool showResult = true);
 	};
 public:
 	// Constructors
@@ -44,7 +47,7 @@ public:
 	
 private:
 	// Properties
-	vector<ThreeDimReconstruction::Img> img;	// ARRAY of Img*
+	vector<ThreeDimReconstruction::Img> images;	// ARRAY of Img*
 };
 
 

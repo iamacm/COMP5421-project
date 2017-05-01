@@ -3,16 +3,17 @@
 #include <algorithm> 
 #include <stdint.h>
 #include <opencv2/opencv.hpp>
+#include <opencv2/nonfree/nonfree.hpp>
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "ThreeDimReconstruction.h"
 
-void ThreeDimReconstruction::FeatureDetector::nonMaxSuppression(const Img src, Img& dst) {
+void ThreeDimReconstruction::FeatureDetectors::nonMaxSuppression(const Img src, Img& dst) {
 	// find pixels that are equal to the local neighborhood not maximum (including 'plateaus')
 	cv::dilate(src.mat, dst.mat, Mat());
 	//cv::compare(src.mat, dst.mat, dst.mat, cv::CMP_GE);
 }
-vector<Point2d> ThreeDimReconstruction::FeatureDetector::detectHarrisCorner(const Img src, bool showResult) {
+vector<Point2d> ThreeDimReconstruction::FeatureDetectors::detectHarrisCorner(const Img src, bool showResult) {
 	/// Result
 	vector<Point2d> cornerPoints;
 	/// Detector parameters
@@ -70,7 +71,7 @@ vector<Point2d> ThreeDimReconstruction::FeatureDetector::detectHarrisCorner(cons
 			}
 		}
 	}
-	//ThreeDimReconstruction::FeatureDetector::nonMaxSuppression(thresholded, localMaxBinary);
+	//ThreeDimReconstruction::FeatureDetectors::nonMaxSuppression(thresholded, localMaxBinary);
 	//bitwise_and(thresholdedBinary.mat, localMaxBinary.mat, res);
 
 
@@ -101,11 +102,42 @@ vector<Point2d> ThreeDimReconstruction::FeatureDetector::detectHarrisCorner(cons
 		//localMaxBinary.show();
 	}
 
-	printf("%d corner(s) detected!\n", cornerPoints.size());
+	printf("%d corner(s) detected!\n", (int) cornerPoints.size());
 	//namedWindow("corners_window", CV_WINDOW_AUTOSIZE);
 	//imshow("corners_window", dst_norm_scaled);
 
 	//dstNorm.mat = Mat(dst_norm_scaled);
 	//waitKey(0);
 	return cornerPoints;
+}
+
+vector<pair<KeyPoint, Mat>> ThreeDimReconstruction::FeatureDetectors::detectSIFT(const Img src, bool showResult) {
+
+	vector<pair<KeyPoint, Mat>> features; // SIFT features to be returned
+
+	Mat grayImg;
+	cv::cvtColor(src.mat, grayImg, CV_BGR2GRAY);
+
+	SiftFeatureDetector detector(
+		0, // nFeatures
+		4, // nOctaveLayers
+		0.10, // contrastThreshold 0.04
+		20, //edgeThreshold 10
+		1.6 //sigma
+	);
+	SiftDescriptorExtractor extractor;
+
+	vector<KeyPoint> keypoints;
+	Mat descriptors;
+
+	detector.detect(grayImg, keypoints);
+	extractor.compute(grayImg, keypoints, descriptors);
+
+	for (int i = 0; i < keypoints.size(); ++i) {
+		KeyPoint keypoint = keypoints[i];
+		Mat descriptor = descriptors.row(i);
+		features.push_back(make_pair(keypoint, descriptor));
+	}
+
+	return features;
 }

@@ -69,8 +69,8 @@ void findPairs(vector<KeyPoint>& keypoints1, Mat& descriptors1,
 	}
 }
 
-int mainS(int argc, char** argv) {
-
+int mainS (int argc, char** argv) {
+	/*
 	const char* filename[2];
 	if (argc < 3) {
 		filename[0] = "0006.png";
@@ -198,6 +198,8 @@ int mainS(int argc, char** argv) {
 
 
 	waitKey(0);
+
+	*/
 
 	return 0;
 }

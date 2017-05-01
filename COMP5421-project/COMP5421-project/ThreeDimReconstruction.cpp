@@ -3,6 +3,7 @@
 #include <algorithm> 
 #include <stdint.h>
 #include <opencv2/opencv.hpp>
+#include <opencv2/nonfree/nonfree.hpp>
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "ThreeDimReconstruction.h"
@@ -13,6 +14,12 @@
 // Constructor of Img
 ThreeDimReconstruction::Img::Img(void) {
 
+}
+
+ThreeDimReconstruction::Img::Img(const ThreeDimReconstruction::Img& img) {
+	this->mat = img.mat.clone();
+	this->name = img.name;
+	this->path = img.path;
 }
 
 ThreeDimReconstruction::Img::Img(string path) {
@@ -27,6 +34,10 @@ ThreeDimReconstruction::Img::Img(string path) {
 	// Name the image
 	this->name = "Image " + this->path;
 
+}
+
+ThreeDimReconstruction::Img ThreeDimReconstruction::Img::clone() const {
+	return ThreeDimReconstruction::Img(*this);
 }
 
 // Display the image of ID with aspect ratio kept
@@ -61,13 +72,13 @@ ThreeDimReconstruction::ThreeDimReconstruction(char* imgPath1, char* imgPath2)
 {
 	printf("Screen resolution: %d * %d\n", SCREEN_WIDTH, SCREEN_HEIGHT);
 
-	this->img.push_back(ThreeDimReconstruction::Img(imgPath1));
-	this->img.push_back(ThreeDimReconstruction::Img(imgPath2));
+	this->images.push_back(ThreeDimReconstruction::Img(imgPath1));
+	this->images.push_back(ThreeDimReconstruction::Img(imgPath2));
 
 	
 	printf("Loaded files successfully!\n");
-	for (int i = 0; i < this->img.size(); ++i) {
-		printf("img[%d]: %d * %d\n", i, this->img[i].mat.cols, this->img[i].mat.rows);
+	for (int i = 0; i < this->images.size(); ++i) {
+		printf("img[%d]: %d * %d\n", i, this->images[i].mat.cols, this->images[i].mat.rows);
 	}
 	
 }
@@ -76,7 +87,7 @@ ThreeDimReconstruction::ThreeDimReconstruction(char* imgPath1, char* imgPath2)
 
 
 void ThreeDimReconstruction::showOriginalImg(void) const {
-	for (const Img img : this->img) {
+	for (const Img& img : this->images) {
 		img.show();
 	}
 	this->wait();
@@ -98,17 +109,17 @@ void ThreeDimReconstruction::processHarrisCorner(void) {
 	*/
 	
 	//this->wait();
-	const int imgCount = this->img.size();
+	const int imgCount = this->images.size();
 	vector<vector<Point>> imgCorners;
-	vector<Img> imgCornersCircled(this->img.size());
+	vector<Img> imgCornersCircled(this->images.size());
 
 	for (int i = 0; i < imgCount; ++i) {
-		vector<Point2d> corners = ThreeDimReconstruction::FeatureDetector::detectHarrisCorner(this->img[i], false);
-		imgCornersCircled[i].mat = this->img[i].mat.clone();
+		vector<Point2d> corners = ThreeDimReconstruction::FeatureDetectors::detectHarrisCorner(this->images[i], false);
+		imgCornersCircled[i].mat = this->images[i].mat.clone();
 		for (const Point pt : corners) {
 			circle(imgCornersCircled[i].mat, pt, 15, Scalar(0, 0, 255), 5);
 		}
-		imgCornersCircled[i].name = this->img[i].name + " with cornered circled";
+		imgCornersCircled[i].name = this->images[i].name + " with cornered circled";
 		imgCornersCircled[i].show();
 		
 	}
@@ -117,6 +128,13 @@ void ThreeDimReconstruction::processHarrisCorner(void) {
 }
 
 void ThreeDimReconstruction::process(void) {
+
+	for (const Img& img : this->images) {
+		vector<pair<KeyPoint, Mat>> features = FeatureDetectors::detectSIFT(img);
+
+		printf("%d SIFT feature(s) found in %s\n", features.size(), img.name);
+	}
+
 
 }
 

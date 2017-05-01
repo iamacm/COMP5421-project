@@ -47,7 +47,7 @@
     <ClCompile Include="siftSample.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FeatureDetector.cpp">
+    <ClCompile Include="FeatureDetectors.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
