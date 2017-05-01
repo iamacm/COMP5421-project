@@ -2,11 +2,13 @@
 #include <windows.h>
 #include <algorithm> 
 #include <stdint.h>
+#include <thread>
 #include <opencv2/opencv.hpp>
 #include <opencv2/nonfree/nonfree.hpp>
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "ThreeDimReconstruction.h"
+#include "SIFTFeature.h"
 
 #define	SCREEN_WIDTH				GetSystemMetrics(SM_CXSCREEN)
 #define	SCREEN_HEIGHT				GetSystemMetrics(SM_CYSCREEN)
@@ -128,12 +130,11 @@ void ThreeDimReconstruction::processHarrisCorner(void) {
 }
 
 
-void ThreeDimReconstruction::visualizeFeatures(const Img& img, const vector<pair<KeyPoint, Mat>>& features) const {
+void ThreeDimReconstruction::visualizeFeatures(const Img& img, const vector<SIFTFeature>& features) const {
 	Img imgWithFeatures = img.clone();
 
 	for (const auto& feature : features) {
-		const KeyPoint& keypoint = feature.first;
-		circle(imgWithFeatures.mat, keypoint.pt, cvRound(keypoint.size*1.0), Scalar(0, 255, 0), 5, 8, 0);
+		circle(imgWithFeatures.mat, feature.keypoint.pt, cvRound(feature.keypoint.size*1.0), Scalar(0, 255, 0), 3);
 	}
 
 	imgWithFeatures.name += " SIFT features";
@@ -143,9 +144,11 @@ void ThreeDimReconstruction::visualizeFeatures(const Img& img, const vector<pair
 
 
 void ThreeDimReconstruction::process(void) {
-
+	vector<thread> threads;
+	vector<SIFTFeature> features;
 	for (const Img& img : this->images) {
-		vector<pair<KeyPoint, Mat>> features = FeatureDetectors::detectSIFT(img);
+
+		vector<SIFTFeature> features = FeatureDetectors::detectSIFT(img);
 
 		printf("%d SIFT feature(s) found in %s\n", features.size(), img.name);
 

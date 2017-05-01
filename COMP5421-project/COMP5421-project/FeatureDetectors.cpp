@@ -111,9 +111,9 @@ vector<Point2d> ThreeDimReconstruction::FeatureDetectors::detectHarrisCorner(con
 	return cornerPoints;
 }
 
-vector<pair<KeyPoint, Mat>> ThreeDimReconstruction::FeatureDetectors::detectSIFT(const Img src, bool showResult) {
+vector<SIFTFeature> ThreeDimReconstruction::FeatureDetectors::detectSIFT(const Img src, bool showResult) {
 
-	vector<pair<KeyPoint, Mat>> features; // SIFT features to be returned
+	vector<SIFTFeature> features; // SIFT features to be returned
 
 	Mat grayImg;
 	cv::cvtColor(src.mat, grayImg, CV_BGR2GRAY);
@@ -136,7 +136,7 @@ vector<pair<KeyPoint, Mat>> ThreeDimReconstruction::FeatureDetectors::detectSIFT
 	for (int i = 0; i < keypoints.size(); ++i) {
 		KeyPoint keypoint = keypoints[i];
 		Mat descriptor = descriptors.row(i);
-		features.push_back(make_pair(keypoint, descriptor));
+		features.push_back(SIFTFeature(keypoint, descriptor));
 	}
 
 	return features;

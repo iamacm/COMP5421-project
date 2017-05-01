@@ -6,10 +6,12 @@
 #include <opencv2/highgui.hpp>
 #include <iostream>
 #include <string>
-
+#include "SIFTFeature.h"
 
 using namespace cv;
 using namespace std;
+
+
 
 
 class ThreeDimReconstruction {
@@ -34,7 +36,7 @@ class ThreeDimReconstruction {
 	public:
 		static void nonMaxSuppression(const Img src, Img& dst);
 		static vector<Point2d> detectHarrisCorner(const Img src, bool showResult = true);
-		static vector<pair<KeyPoint, Mat>> detectSIFT(const Img src, bool showResult = true);
+		static vector<SIFTFeature> detectSIFT(const Img src, bool showResult = true);
 	};
 public:
 	// Constructors
@@ -42,7 +44,7 @@ public:
 	// Methods
 	void showOriginalImg(void) const;	// Show all images
 	void processHarrisCorner(void);
-	void visualizeFeatures(const Img& img, const vector<pair<KeyPoint, Mat>>& features) const;
+	void visualizeFeatures(const Img& img, const vector<SIFTFeature>& features) const;
 	//void SIFTFeatureMatching(Img img1, Img img2)
 	void process(void);
 	void wait(void) const;
