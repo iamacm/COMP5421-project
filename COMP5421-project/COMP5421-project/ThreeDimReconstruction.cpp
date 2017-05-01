@@ -86,7 +86,7 @@ void ThreeDimReconstruction::wait(void) const {
 	waitKey(0); // Wait for a keystroke in the window
 }
 
-void ThreeDimReconstruction::process(void) {
+void ThreeDimReconstruction::processHarrisCorner(void) {
 	/*
 	Img imgFiltered;
 	imgFiltered.name = "Image blurred";
@@ -114,5 +114,9 @@ void ThreeDimReconstruction::process(void) {
 	}
 
 	this->wait();
+}
+
+void ThreeDimReconstruction::process(void) {
+
 }
 

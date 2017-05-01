@@ -69,7 +69,8 @@ void findPairs(vector<KeyPoint>& keypoints1, Mat& descriptors1,
 	}
 }
 
-int main(int argc, char** argv) {
+int mainS(int argc, char** argv) {
+
 	const char* filename[2];
 	if (argc < 3) {
 		filename[0] = "0006.png";
@@ -121,6 +122,7 @@ int main(int argc, char** argv) {
 		cerr << "color image open error" << endl;
 		return -1;
 	}
+	cv::cvtColor(newColorImage, newGrayImage, CV_BGR2GRAY);
 
 	namedWindow("mywindow", CV_WINDOW_NORMAL);
 	imshow("mywindow", originalColorImage);

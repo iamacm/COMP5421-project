@@ -37,6 +37,7 @@ public:
 	ThreeDimReconstruction(char* imgPath1, char* imgPath2);
 	// Methods
 	void showOriginalImg(void) const;	// Show all images
+	void processHarrisCorner(void);
 	void process(void);
 	void wait(void) const;
 	

@@ -42,7 +42,7 @@ int maintest(int argc, char** argv)
 	return 0;
 }
 
-int main2(int argc, char** argv)
+int main(int argc, char** argv)
 {
 	ThreeDimReconstruction* threeDimRec = NULL;
 	if (argc != 3)
