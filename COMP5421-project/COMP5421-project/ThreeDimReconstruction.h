@@ -11,6 +11,7 @@
 using namespace cv;
 using namespace std;
 
+
 class ThreeDimReconstruction {
 	// Sub-class Img
 	class Img {
@@ -41,6 +42,8 @@ public:
 	// Methods
 	void showOriginalImg(void) const;	// Show all images
 	void processHarrisCorner(void);
+	void visualizeFeatures(const Img& img, const vector<pair<KeyPoint, Mat>>& features) const;
+	//void SIFTFeatureMatching(Img img1, Img img2)
 	void process(void);
 	void wait(void) const;
 	

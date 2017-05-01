@@ -127,14 +127,32 @@ void ThreeDimReconstruction::processHarrisCorner(void) {
 	this->wait();
 }
 
+
+void ThreeDimReconstruction::visualizeFeatures(const Img& img, const vector<pair<KeyPoint, Mat>>& features) const {
+	Img imgWithFeatures = img.clone();
+
+	for (const auto& feature : features) {
+		const KeyPoint& keypoint = feature.first;
+		circle(imgWithFeatures.mat, keypoint.pt, cvRound(keypoint.size*1.0), Scalar(0, 255, 0), 5, 8, 0);
+	}
+
+	imgWithFeatures.name += " SIFT features";
+	imgWithFeatures.show();
+	//circle(matchingImage, kp.pt + Point2f(newColorImage.size().width, newColorImage.size().height), cvRound(kp.size*1.0), Scalar(0, 255, 0), 5, 8, 0);
+}
+
+
 void ThreeDimReconstruction::process(void) {
 
 	for (const Img& img : this->images) {
 		vector<pair<KeyPoint, Mat>> features = FeatureDetectors::detectSIFT(img);
 
 		printf("%d SIFT feature(s) found in %s\n", features.size(), img.name);
+
+		visualizeFeatures(img, features);
 	}
 
+	this->wait();
 
 }
 
