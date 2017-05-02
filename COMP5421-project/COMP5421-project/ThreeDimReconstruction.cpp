@@ -14,14 +14,14 @@
 #define	SCREEN_HEIGHT				GetSystemMetrics(SM_CYSCREEN)
 
 // Global function
-double euclideanDistanceSquared(const Mat& mat1, const Mat& mat2) {
+int euclideanDistanceSquared(const Mat& mat1, const Mat& mat2) {
 	if (mat1.cols != mat2.cols) {
 		throw Exception();
 	}
-	double sum = 0;
+	int sum = 0;
 	for (int i = 0; i < mat1.cols; ++i) {
 		const int diff = mat1.at<uchar>(0, i) - mat2.at<uchar>(0, i);
-		sum += (double)(diff * diff);
+		sum += (diff * diff);
 	}
 	return sum;
 }
@@ -39,23 +39,6 @@ int nearestNeighbor(const SIFTFeature& feature1, const vector<SIFTFeature>& feat
 		}
 	}
 	return id;
-}
-
-// Find the SORTED nearest neighbors of feature1 out of the list of features
-// Return the a list of <int id, double distance>
-vector<pair<int, double>> getNearestNeighbors(const SIFTFeature& feature1, const vector<SIFTFeature>& features) {
-	vector<pair<int, double>> list;
-
-	for (int i = 0; i < features.size(); ++i) {
-		list.push_back(make_pair(i, euclideanDistanceSquared(feature1.descriptor, features[i].descriptor)));
-	}
-
-	// Sort the list by the Euclidean distance
-	sort(list.begin(), list.end(), [](const pair<int, double> &left, const pair<int, double> &right) {
-		return left.second < right.second;
-	});
-
-	return list;
 }
 
 
@@ -220,37 +203,26 @@ vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatchi
 
 
 	for (int feature1Id = 0; feature1Id < features1.size(); ++feature1Id) {
-		//int img2MatchedFeatureId = nearestNeighbor(features1[i], features2);
 		const SIFTFeature& feature = features1[feature1Id];
-
 		const int img2MatchedFeatureId = nearestNeighbor(feature, features2);
 		const SIFTFeature& img2MatchedFeature = features2[img2MatchedFeatureId];
-		/*
-		vector<pair<int, double>> nearestNeighborsFrom1To2 = getNearestNeighbors(feature, features2);
-		
-		//printf("nearestNeighbors: %f\t%f\t%f\n", nearestNeighbors[0].second, nearestNeighbors[1].second, nearestNeighbors[2].second);
-		
-		
-		const SIFTFeature& matchedFeature = features2[nearestNeighborsFrom1To2[0].first];	// Best
-		vector<pair<int, double>> nearestNeighborsFrom2To1 = getNearestNeighbors(matchedFeature, features1);
 
-		for (int i = 0; i < k; ++i) {
-			if (nearestNeighborsFrom2To1[i].first == feature1Id) {
-				matchings.push_back(make_pair(feature, matchedFeature));
-				break;
-			}
-		}
-		*/
 
 		if (nearestNeighbor(img2MatchedFeature, features1) == feature1Id) {
 			matchings.push_back(make_pair(feature, img2MatchedFeature));
+			printf("Feature matched with distance squared %f\n", 
+				sqrt((double)euclideanDistanceSquared(feature.descriptor, img2MatchedFeature.descriptor)));
 		}
 
-		//matchings.push_back(make_pair(features1[i], img2MatchedFeature));
 
-		
-		
 	}
+
+	// Sort by distance diff
+	sort(matchings.begin(), matchings.end(), [](const pair<SIFTFeature, SIFTFeature>& prev, const pair<SIFTFeature, SIFTFeature>& next) {
+		int prevDistance = euclideanDistanceSquared(prev.first.descriptor, prev.second.descriptor);
+		int nextDistance = euclideanDistanceSquared(next.first.descriptor, next.second.descriptor);
+		return prevDistance < nextDistance;
+	});
 
 	return matchings;
 }
@@ -271,9 +243,10 @@ void ThreeDimReconstruction::process(void) {
 
 	if (this->images.size() >= 2) {
 		vector<pair<SIFTFeature, SIFTFeature>> matchings = SIFTFeatureMatching(this->images[0], featuresOfImages[0], this->images[1], featuresOfImages[1]);
-		visualizeFeatures(this->images[0], featuresOfImages[0]);
-		visualizeFeatures(this->images[1], featuresOfImages[1]);
+		//visualizeFeatures(this->images[0], featuresOfImages[0]);
+		//visualizeFeatures(this->images[1], featuresOfImages[1]);
 		printf("%d matchings found\n", matchings.size());
+
 		visualizeMatchings(this->images[0], this->images[1], matchings);
 	}
 
