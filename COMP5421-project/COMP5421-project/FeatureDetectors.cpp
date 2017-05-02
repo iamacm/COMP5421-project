@@ -121,7 +121,7 @@ vector<SIFTFeature> ThreeDimReconstruction::FeatureDetectors::detectSIFT(const I
 	cv::cvtColor(src.mat, grayImg, CV_BGR2GRAY);
 
 	SiftFeatureDetector detector(
-		1000, // nFeatures
+		20, // nFeatures
 		3, // nOctaveLayers
 		0.04, // contrastThreshold 0.04 / 0.10
 		10, //edgeThreshold 10 / 20

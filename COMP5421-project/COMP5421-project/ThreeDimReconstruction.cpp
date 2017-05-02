@@ -216,19 +216,34 @@ void ThreeDimReconstruction::visualizeMatchings(const Img& img1, const Img& img2
 vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatching(const Img& img1, const vector<SIFTFeature> features1, const Img& img2, const vector<SIFTFeature> features2) {
 	// For each feature of mat1, find the best feature to be matched with mat2
 	vector<pair<SIFTFeature, SIFTFeature>> matchings;
+	const int k = 1;
 
-	for (int i = 0; i < features1.size(); ++i) {
+
+	for (int feature1Id = 0; feature1Id < features1.size(); ++feature1Id) {
 		//int img2MatchedFeatureId = nearestNeighbor(features1[i], features2);
-		vector<pair<int, double>> nearestNeighbors = getNearestNeighbors(features1[i], features2);
-		int img2MatchedFeatureId = nearestNeighbors[0].first;
+		const SIFTFeature& feature = features1[feature1Id];
 
-		printf("%d\t%d\n", i, img2MatchedFeatureId);
-		const SIFTFeature& img2MatchedFeature = features2[i];
-
-		// Left-right check (check if this img1 feature is also the best matched of img2)
+		const int img2MatchedFeatureId = nearestNeighbor(feature, features2);
+		const SIFTFeature& img2MatchedFeature = features2[img2MatchedFeatureId];
+		/*
+		vector<pair<int, double>> nearestNeighborsFrom1To2 = getNearestNeighbors(feature, features2);
 		
-		if (nearestNeighbor(img2MatchedFeature, features1) == i) {
-			matchings.push_back(make_pair(features1[i], img2MatchedFeature));
+		//printf("nearestNeighbors: %f\t%f\t%f\n", nearestNeighbors[0].second, nearestNeighbors[1].second, nearestNeighbors[2].second);
+		
+		
+		const SIFTFeature& matchedFeature = features2[nearestNeighborsFrom1To2[0].first];	// Best
+		vector<pair<int, double>> nearestNeighborsFrom2To1 = getNearestNeighbors(matchedFeature, features1);
+
+		for (int i = 0; i < k; ++i) {
+			if (nearestNeighborsFrom2To1[i].first == feature1Id) {
+				matchings.push_back(make_pair(feature, matchedFeature));
+				break;
+			}
+		}
+		*/
+
+		if (nearestNeighbor(img2MatchedFeature, features1) == feature1Id) {
+			matchings.push_back(make_pair(feature, img2MatchedFeature));
 		}
 
 		//matchings.push_back(make_pair(features1[i], img2MatchedFeature));
