@@ -240,16 +240,16 @@ Mat ThreeDimReconstruction::eightPointAlgorithm(const vector<pair<SIFTFeature, S
 	for (int n = 0; n < N; ++n) {
 		const Point2f& point1 = matchings[n].first.keypoint.pt;
 		const Point2f& point2 = matchings[n].second.keypoint.pt;
-		// Epipolar constraints u1Fu2 = 0, where u1 = (x1, y1, 1) and u2 = (x2, y2, 1)
+		// Epipolar constraints u1Fu2 = 0, where u = (x, y, 1) and up = (xp, yp, 1)
 		// Eqivalent to AF = 0, where
-		// A(i) = (x1x2, x1y2, x1, y1x2, y1y2, y1, x2, y2, 1)
-		const float u1[3] = { point1.x, point1.y, 1 };
-		const float u2[3] = { point2.x, point2.y, 1 };
+		// A(i) = (xpx, xpy, xp, ypx, ypy, yp, x, y, 1)
+		const float u[3] = { point1.x, point1.y, 1 };
+		const float up[3] = { point2.x, point2.y, 1 };
 		
 
 		for (int i = 0; i < 3; ++i) {
 			for (int j = 0; j < 3; ++j) {
-				A.at<float>(n, i * 3 + j) = u1[i] * u2[j];
+				A.at<float>(n, i * 3 + j) = up[i] * u[j];
 			}
 		}
 	}
@@ -340,16 +340,15 @@ void ThreeDimReconstruction::process(void) {
 
 		// Check top 10 results
 		for (auto& matching : matchings) {
-			Mat up(1, 3, CV_32FC1), u(1, 3, CV_32FC1);
-			up.at<float>(0, 0) = matching.first.keypoint.pt.x;
-			up.at<float>(0, 1) = matching.first.keypoint.pt.y;
-			up.at<float>(0, 2) = 1;
-			u.at<float>(0, 0) = matching.second.keypoint.pt.x;
-			u.at<float>(0, 1) = matching.second.keypoint.pt.y;
-			u.at<float>(0, 2) = 1;
+			Mat up(3, 1, CV_32FC1), u(3, 1, CV_32FC1);
+			up.at<float>(0, 0) = matching.second.keypoint.pt.x;
+			up.at<float>(1, 0) = matching.second.keypoint.pt.y;
+			up.at<float>(2, 0) = 1;
+			u.at<float>(0, 0) = matching.first.keypoint.pt.x;
+			u.at<float>(1, 0) = matching.first.keypoint.pt.y;
+			u.at<float>(2, 0) = 1;
 
-
-			cout << "u'Fut: " << up * fundamentalMatrix * u.t() << endl; 
+			cout << "u'tFu: " << up.t() * fundamentalMatrix * u << endl; 
 		}
 
 	}
