@@ -1,11 +1,14 @@
 ﻿  ThreeDimReconstruction.cpp
-\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(45): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
-\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(45): warning C4244: 'initializing': conversion from 'float' to 'const int', possible loss of data
-\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(46): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
-\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(46): warning C4244: 'initializing': conversion from 'float' to 'const int', possible loss of data
-\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(52): warning C4244: '*=': conversion from 'const double' to 'int', possible loss of data
-\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(53): warning C4244: '*=': conversion from 'const double' to 'int', possible loss of data
-\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(112): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(112): warning C4267: 'initializing': conversion from 'size_t' to 'const int', possible loss of data
+\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(47): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(47): warning C4244: 'initializing': conversion from 'float' to 'const int', possible loss of data
+\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(48): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(48): warning C4244: 'initializing': conversion from 'float' to 'const int', possible loss of data
+\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(54): warning C4244: '*=': conversion from 'const double' to 'int', possible loss of data
+\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(55): warning C4244: '*=': conversion from 'const double' to 'int', possible loss of data
+\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(114): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(114): warning C4267: 'initializing': conversion from 'size_t' to 'const int', possible loss of data
+\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(154): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'unsigned __int64'
+  \\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(154): note: consider using '%zd' in the format string
+\\mac\home\documents\comp5421-project\comp5421-project\comp5421-project\threedimreconstruction.cpp(154): warning C4477: 'printf' : format string '%s' requires an argument of type 'char *', but variadic argument 2 has type 'const std::string'
   COMP5421-project.vcxproj -> \\Mac\Home\Documents\COMP5421-project\COMP5421-project\x64\Debug\COMP5421-project.exe
   COMP5421-project.vcxproj -> \\Mac\Home\Documents\COMP5421-project\COMP5421-project\x64\Debug\COMP5421-project.pdb (Partial PDB)

@@ -7,9 +7,10 @@
 namespace cv {
 	class SIFTFeature {
 	public:
+		SIFTFeature();
 		SIFTFeature(KeyPoint keypoint, Mat descriptor);
 		// Properties
 		KeyPoint keypoint;
-		Mat descriptor;
+		Mat descriptor;	// A row of matrix of uchar type
 	};
 }

@@ -8,6 +8,8 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "ThreeDimReconstruction.h"
 
+const double KEYPOINT_MIN = 0.0;
+
 void ThreeDimReconstruction::FeatureDetectors::nonMaxSuppression(const Img src, Img& dst) {
 	// find pixels that are equal to the local neighborhood not maximum (including 'plateaus')
 	cv::dilate(src.mat, dst.mat, Mat());
@@ -111,21 +113,17 @@ vector<Point2d> ThreeDimReconstruction::FeatureDetectors::detectHarrisCorner(con
 	return cornerPoints;
 }
 
-vector<SIFTFeature> ThreeDimReconstruction::FeatureDetectors::detectSIFT(const Img src, bool showResult) {
+vector<SIFTFeature> ThreeDimReconstruction::FeatureDetectors::detectSIFT(const Img& src) {
 
 	vector<SIFTFeature> features; // SIFT features to be returned
 
 	Mat grayImg;
 	cv::cvtColor(src.mat, grayImg, CV_BGR2GRAY);
 
-	SiftFeatureDetector detector(
-		0, // nFeatures
-		4, // nOctaveLayers
-		0.10, // contrastThreshold 0.04
-		20, //edgeThreshold 10
-		1.6 //sigma
+	SurfFeatureDetector detector(
+		5000 // nFeatures
 	);
-	SiftDescriptorExtractor extractor;
+	SurfDescriptorExtractor extractor;
 
 	vector<KeyPoint> keypoints;
 	Mat descriptors;
@@ -136,8 +134,15 @@ vector<SIFTFeature> ThreeDimReconstruction::FeatureDetectors::detectSIFT(const I
 	for (int i = 0; i < keypoints.size(); ++i) {
 		KeyPoint keypoint = keypoints[i];
 		Mat descriptor = descriptors.row(i);
-		features.push_back(SIFTFeature(keypoint, descriptor));
+
+		if (keypoint.size >= KEYPOINT_MIN) {
+			features.push_back(SIFTFeature(keypoint, descriptor));
+		}
 	}
 
 	return features;
+}
+
+void ThreeDimReconstruction::FeatureDetectors::detectSIFT(vector<SIFTFeature>& features, const Img& src) {
+	features = ThreeDimReconstruction::FeatureDetectors::detectSIFT(src);
 }

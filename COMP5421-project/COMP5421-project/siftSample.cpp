@@ -135,7 +135,7 @@ int mainS (int argc, char** argv) {
 	Size sz = Size(newColorImage.size().width + originalColorImage.size().width, newColorImage.size().height + originalColorImage.size().height);
 	Mat matchingImage = Mat::zeros(sz, CV_8UC3);
 
-	// Draw camera framehaha
+	// Draw camera frame
 	Mat roi1 = Mat(matchingImage, Rect(0, 0, newColorImage.size().width, newColorImage.size().height));
 	newColorImage.copyTo(roi1);
 	// Draw original image

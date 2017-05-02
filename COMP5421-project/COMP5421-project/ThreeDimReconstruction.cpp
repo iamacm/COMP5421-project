@@ -13,6 +13,34 @@
 #define	SCREEN_WIDTH				GetSystemMetrics(SM_CXSCREEN)
 #define	SCREEN_HEIGHT				GetSystemMetrics(SM_CYSCREEN)
 
+// Global function
+double euclideanDistanceSquared(const Mat& mat1, const Mat& mat2) {
+	if (mat1.cols != mat2.cols) {
+		throw Exception();
+	}
+	double sum = 0;
+	for (int i = 0; i < mat1.cols; ++i) {
+		const int diff = mat1.at<uchar>(0, i) - mat2.at<uchar>(0, i);
+		sum += diff * diff;
+	}
+	return sum;
+}
+
+// Find the nearest neighbor of feature1 out of the list of features
+// Return the id of the nearest neighbor feature
+int nearestNeighbor(const SIFTFeature& feature1, const vector<SIFTFeature>& features) {
+	int id = -1;
+	double minDistance = INFINITY;
+	for (int i = 0; i < features.size(); ++i) {
+		const double distance = euclideanDistanceSquared(feature1.descriptor, features[i].descriptor);
+		if (minDistance > distance) {
+			id = i;
+			minDistance = distance;
+		}
+	}
+	return id;
+}
+
 // Constructor of Img
 ThreeDimReconstruction::Img::Img(void) {
 
@@ -142,20 +170,78 @@ void ThreeDimReconstruction::visualizeFeatures(const Img& img, const vector<SIFT
 	//circle(matchingImage, kp.pt + Point2f(newColorImage.size().width, newColorImage.size().height), cvRound(kp.size*1.0), Scalar(0, 255, 0), 5, 8, 0);
 }
 
+void ThreeDimReconstruction::visualizeMatchings(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>> matchings) {
+	Img matchingImg;
+	matchingImg.name = "Matching of " + img1.name + " & " + img2.name;
+	Size matchingImgsize(img1.mat.size().width + img2.mat.size().width, max(img1.mat.size().height, img2.mat.size().height));
+	matchingImg.mat = Mat::zeros(matchingImgsize, CV_8UC3);	// Creating image of size
+
+	// Copy images to the matching image
+	img1.mat.copyTo(matchingImg.mat(Rect(0, 0, img1.mat.size().width, img1.mat.size().height)));
+	img2.mat.copyTo(matchingImg.mat(Rect(img1.mat.size().width, 0, img2.mat.size().width, img2.mat.size().height)));
+
+	// Circle keypoints and draw lines
+	for (const pair<SIFTFeature, SIFTFeature>& matching : matchings) {
+		const SIFTFeature& feature1 = matching.first;
+		const SIFTFeature& feature2 = matching.second;
+		// Circle feature1
+		circle(matchingImg.mat, feature1.keypoint.pt, cvRound(feature1.keypoint.size*1.0), Scalar(0, 255, 0), 3);
+		// Circle feature2
+		circle(matchingImg.mat, feature2.keypoint.pt + Point2f(img1.mat.size().width, 0), cvRound(feature2.keypoint.size*1.0), Scalar(0, 255, 0), 3);
+		// Draw line between the two features
+		line(matchingImg.mat, feature1.keypoint.pt, feature2.keypoint.pt + Point2f(img1.mat.size().width, 0), Scalar(0, 0, 255), 3);
+	}
+
+	matchingImg.show();
+}
+
+vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatching(const Img& img1, const vector<SIFTFeature> features1, const Img& img2, const vector<SIFTFeature> features2) {
+	// For each feature of mat1, find the best feature to be matched with mat2
+	vector<pair<SIFTFeature, SIFTFeature>> matchings;
+
+	for (int i = 0; i < features1.size(); ++i) {
+		int img2MatchedFeatureId = nearestNeighbor(features1[i], features2);
+		printf("%d\t%d\n", i, img2MatchedFeatureId);
+		const SIFTFeature& img2MatchedFeature = features2[i];
+
+		// Left-right check (check if this img1 feature is also the best matched of img2)
+		if (nearestNeighbor(img2MatchedFeature, features1) == i) {
+			matchings.push_back(make_pair(features1[i], img2MatchedFeature));
+		}
+
+		//matchings.push_back(make_pair(features1[i], img2MatchedFeature));
+
+		
+		
+	}
+
+	return matchings;
+}
 
 void ThreeDimReconstruction::process(void) {
-	vector<thread> threads;
-	vector<SIFTFeature> features;
-	for (const Img& img : this->images) {
+	vector<vector<SIFTFeature>> featuresOfImages;
 
+	for (const Img& img : this->images) {
+		SIFTFeature feature;
 		vector<SIFTFeature> features = FeatureDetectors::detectSIFT(img);
 
 		printf("%d SIFT feature(s) found in %s\n", features.size(), img.name);
 
-		visualizeFeatures(img, features);
+		//visualizeFeatures(img, features);
+
+		featuresOfImages.push_back(features);
+	}
+
+	if (this->images.size() >= 2) {
+		vector<pair<SIFTFeature, SIFTFeature>> matchings = SIFTFeatureMatching(this->images[0], featuresOfImages[0], this->images[1], featuresOfImages[1]);
+		visualizeFeatures(this->images[0], featuresOfImages[0]);
+		visualizeFeatures(this->images[1], featuresOfImages[1]);
+		printf("%d matchings found\n", matchings.size());
+		visualizeMatchings(this->images[0], this->images[1], matchings);
 	}
 
 	this->wait();
+	
 
 }
 

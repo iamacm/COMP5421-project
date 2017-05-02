@@ -36,7 +36,8 @@ class ThreeDimReconstruction {
 	public:
 		static void nonMaxSuppression(const Img src, Img& dst);
 		static vector<Point2d> detectHarrisCorner(const Img src, bool showResult = true);
-		static vector<SIFTFeature> detectSIFT(const Img src, bool showResult = true);
+		static vector<SIFTFeature> detectSIFT(const Img& src);
+		static void detectSIFT(vector<SIFTFeature>& features, const Img& src);
 	};
 public:
 	// Constructors
@@ -45,7 +46,8 @@ public:
 	void showOriginalImg(void) const;	// Show all images
 	void processHarrisCorner(void);
 	void visualizeFeatures(const Img& img, const vector<SIFTFeature>& features) const;
-	//void SIFTFeatureMatching(Img img1, Img img2)
+	void visualizeMatchings(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>>);
+	vector<pair<SIFTFeature, SIFTFeature>> SIFTFeatureMatching(const Img& img1, const vector<SIFTFeature> features1, const Img& img2, const vector<SIFTFeature> features2);
 	void process(void);
 	void wait(void) const;
 	
