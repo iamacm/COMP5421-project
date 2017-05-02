@@ -12,7 +12,7 @@
 
 #define	SCREEN_WIDTH				GetSystemMetrics(SM_CXSCREEN)
 #define	SCREEN_HEIGHT				GetSystemMetrics(SM_CYSCREEN)
-
+#define IMAGE_WRITE_FOLDER			"results/"
 // Global function
 int euclideanDistanceSquared(const Mat& mat1, const Mat& mat2) {
 	if (mat1.cols != mat2.cols) {
@@ -159,7 +159,7 @@ void ThreeDimReconstruction::processHarrisCorner(void) {
 }
 
 
-void ThreeDimReconstruction::visualizeFeatures(const Img& img, const vector<SIFTFeature>& features) const {
+ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeFeatures(const Img& img, const vector<SIFTFeature>& features) const {
 	Img imgWithFeatures = img.clone();
 
 	for (const auto& feature : features) {
@@ -169,9 +169,10 @@ void ThreeDimReconstruction::visualizeFeatures(const Img& img, const vector<SIFT
 	imgWithFeatures.name += " SIFT features";
 	imgWithFeatures.show();
 	//circle(matchingImage, kp.pt + Point2f(newColorImage.size().width, newColorImage.size().height), cvRound(kp.size*1.0), Scalar(0, 255, 0), 5, 8, 0);
+	return imgWithFeatures;
 }
 
-void ThreeDimReconstruction::visualizeMatchings(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>> matchings) {
+ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchings(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>> matchings) {
 	Img matchingImg;
 	matchingImg.name = "Matching of " + img1.name + " & " + img2.name;
 	Size matchingImgsize(img1.mat.size().width + img2.mat.size().width, max(img1.mat.size().height, img2.mat.size().height));
@@ -194,6 +195,7 @@ void ThreeDimReconstruction::visualizeMatchings(const Img& img1, const Img& img2
 	}
 
 	matchingImg.show();
+	return matchingImg;
 }
 
 vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatching(const Img& img1, const vector<SIFTFeature> features1, const Img& img2, const vector<SIFTFeature> features2) {
@@ -246,10 +248,11 @@ void ThreeDimReconstruction::process(void) {
 		printf("%d matchings found\n", matchings.size());
 
 		for (auto& matching : matchings) {
-			printf("%f\n", sqrt(euclideanDistanceSquared(matching.first.descriptor, matching.second.descriptor)));
+			//printf("%f\n", sqrt(euclideanDistanceSquared(matching.first.descriptor, matching.second.descriptor)));
 		}
 		matchings.resize(15);
-		visualizeMatchings(this->images[0], this->images[1], matchings);
+		Img visualizeMatchingsImg = visualizeMatchings(this->images[0], this->images[1], matchings);
+		imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingsImg.name + ".jpg", visualizeMatchingsImg.mat);
 	}
 
 	this->wait();

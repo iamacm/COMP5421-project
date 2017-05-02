@@ -45,8 +45,8 @@ public:
 	// Methods
 	void showOriginalImg(void) const;	// Show all images
 	void processHarrisCorner(void);
-	void visualizeFeatures(const Img& img, const vector<SIFTFeature>& features) const;
-	void visualizeMatchings(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>>);
+	Img visualizeFeatures(const Img& img, const vector<SIFTFeature>& features) const;
+	Img visualizeMatchings(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>>);
 	vector<pair<SIFTFeature, SIFTFeature>> SIFTFeatureMatching(const Img& img1, const vector<SIFTFeature> features1, const Img& img2, const vector<SIFTFeature> features2);
 	void process(void);
 	void wait(void) const;
