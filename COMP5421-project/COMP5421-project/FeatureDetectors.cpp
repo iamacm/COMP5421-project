@@ -120,10 +120,14 @@ vector<SIFTFeature> ThreeDimReconstruction::FeatureDetectors::detectSIFT(const I
 	Mat grayImg;
 	cv::cvtColor(src.mat, grayImg, CV_BGR2GRAY);
 
-	SurfFeatureDetector detector(
-		5000 // nFeatures
+	SiftFeatureDetector detector(
+		1000, // nFeatures
+		3, // nOctaveLayers
+		0.04, // contrastThreshold 0.04 / 0.10
+		10, //edgeThreshold 10 / 20
+		1.6 //sigma
 	);
-	SurfDescriptorExtractor extractor;
+	SiftDescriptorExtractor extractor;
 
 	vector<KeyPoint> keypoints;
 	Mat descriptors;

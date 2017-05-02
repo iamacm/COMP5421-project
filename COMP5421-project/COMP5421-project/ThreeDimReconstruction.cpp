@@ -21,7 +21,7 @@ double euclideanDistanceSquared(const Mat& mat1, const Mat& mat2) {
 	double sum = 0;
 	for (int i = 0; i < mat1.cols; ++i) {
 		const int diff = mat1.at<uchar>(0, i) - mat2.at<uchar>(0, i);
-		sum += diff * diff;
+		sum += (double)(diff * diff);
 	}
 	return sum;
 }
@@ -40,6 +40,24 @@ int nearestNeighbor(const SIFTFeature& feature1, const vector<SIFTFeature>& feat
 	}
 	return id;
 }
+
+// Find the SORTED nearest neighbors of feature1 out of the list of features
+// Return the a list of <int id, double distance>
+vector<pair<int, double>> getNearestNeighbors(const SIFTFeature& feature1, const vector<SIFTFeature>& features) {
+	vector<pair<int, double>> list;
+
+	for (int i = 0; i < features.size(); ++i) {
+		list.push_back(make_pair(i, euclideanDistanceSquared(feature1.descriptor, features[i].descriptor)));
+	}
+
+	// Sort the list by the Euclidean distance
+	sort(list.begin(), list.end(), [](const pair<int, double> &left, const pair<int, double> &right) {
+		return left.second < right.second;
+	});
+
+	return list;
+}
+
 
 // Constructor of Img
 ThreeDimReconstruction::Img::Img(void) {
@@ -200,11 +218,15 @@ vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatchi
 	vector<pair<SIFTFeature, SIFTFeature>> matchings;
 
 	for (int i = 0; i < features1.size(); ++i) {
-		int img2MatchedFeatureId = nearestNeighbor(features1[i], features2);
+		//int img2MatchedFeatureId = nearestNeighbor(features1[i], features2);
+		vector<pair<int, double>> nearestNeighbors = getNearestNeighbors(features1[i], features2);
+		int img2MatchedFeatureId = nearestNeighbors[0].first;
+
 		printf("%d\t%d\n", i, img2MatchedFeatureId);
 		const SIFTFeature& img2MatchedFeature = features2[i];
 
 		// Left-right check (check if this img1 feature is also the best matched of img2)
+		
 		if (nearestNeighbor(img2MatchedFeature, features1) == i) {
 			matchings.push_back(make_pair(features1[i], img2MatchedFeature));
 		}
