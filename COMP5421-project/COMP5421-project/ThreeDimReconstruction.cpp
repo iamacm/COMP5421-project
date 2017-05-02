@@ -210,8 +210,6 @@ vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatchi
 
 		if (nearestNeighbor(img2MatchedFeature, features1) == feature1Id) {
 			matchings.push_back(make_pair(feature, img2MatchedFeature));
-			printf("Feature matched with distance squared %f\n", 
-				sqrt((double)euclideanDistanceSquared(feature.descriptor, img2MatchedFeature.descriptor)));
 		}
 
 
@@ -236,7 +234,7 @@ void ThreeDimReconstruction::process(void) {
 
 		printf("%d SIFT feature(s) found in %s\n", features.size(), img.name);
 
-		//visualizeFeatures(img, features);
+		visualizeFeatures(img, features);
 
 		featuresOfImages.push_back(features);
 	}
@@ -247,6 +245,10 @@ void ThreeDimReconstruction::process(void) {
 		//visualizeFeatures(this->images[1], featuresOfImages[1]);
 		printf("%d matchings found\n", matchings.size());
 
+		for (auto& matching : matchings) {
+			printf("%f\n", sqrt(euclideanDistanceSquared(matching.first.descriptor, matching.second.descriptor)));
+		}
+		matchings.resize(15);
 		visualizeMatchings(this->images[0], this->images[1], matchings);
 	}
 

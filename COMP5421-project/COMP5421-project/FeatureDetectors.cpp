@@ -123,8 +123,8 @@ vector<SIFTFeature> ThreeDimReconstruction::FeatureDetectors::detectSIFT(const I
 	SiftFeatureDetector detector(
 		0, // nFeatures
 		3, // nOctaveLayers
-		0.10, // contrastThreshold 0.04 / 0.10
-		20, //edgeThreshold 10 / 20
+		0.04, // contrastThreshold 0.04 / 0.10
+		10, //edgeThreshold 10 / 20
 		1.6 //sigma
 	);
 	SiftDescriptorExtractor extractor;
