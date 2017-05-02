@@ -172,7 +172,7 @@ ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeFeatures(const Img&
 	return imgWithFeatures;
 }
 
-ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchings(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>> matchings) {
+ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchings(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>>& matchings) {
 	Img matchingImg;
 	matchingImg.name = "Matching of " + img1.name + " & " + img2.name;
 	Size matchingImgsize(img1.mat.size().width + img2.mat.size().width, max(img1.mat.size().height, img2.mat.size().height));
@@ -227,6 +227,78 @@ vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatchi
 	return matchings;
 }
 
+// Output the fundamental matrix F
+Mat ThreeDimReconstruction::eightPointAlgorithm(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const int N) {
+	Mat fundamentalMatrix(3, 3, CV_32FC1);
+
+	if (N < 8 || matchings.size() < N) {
+		throw Exception();
+	}
+
+	Mat A(N, 9, CV_32FC1);
+
+	for (int n = 0; n < N; ++n) {
+		const Point2f& point1 = matchings[n].first.keypoint.pt;
+		const Point2f& point2 = matchings[n].second.keypoint.pt;
+		// Epipolar constraints u1Fu2 = 0, where u1 = (x1, y1, 1) and u2 = (x2, y2, 1)
+		// Eqivalent to AF = 0, where
+		// A(i) = (x1x2, x1y2, x1, y1x2, y1y2, y1, x2, y2, 1)
+		const float u1[3] = { point1.x, point1.y, 1 };
+		const float u2[3] = { point2.x, point2.y, 1 };
+		
+
+		for (int i = 0; i < 3; ++i) {
+			for (int j = 0; j < 3; ++j) {
+				A.at<float>(n, i * 3 + j) = u1[i] * u2[j];
+			}
+		}
+	}
+
+	cout << A << endl;
+
+	// Apply SVD: A = UDVt
+	Mat U, D, Vt;
+	SVD::compute(A, D, U, Vt);
+
+	
+	// Get the column of the the smallest singular value of V, i.e. the row of least v of Vt
+	// In fact, it is the last row of Vt
+	cout << "D:" << endl << D << endl;
+	cout << "Vt:" << endl << Vt << endl;
+
+	// F' = the last column (i.e., with least singular value) of V
+	Mat FpTmp = Vt.row(Vt.rows - 1).t();
+	// Remake Fp to be from 1 x 9 back to 3 x 3
+	Mat Fp(3, 3, CV_32FC1);
+
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 3; ++j) {
+			Fp.at<float>(i, j) = FpTmp.at<float>(i * 3 + j, 0);
+		}
+	}
+
+	cout << "Fp:" << endl << Fp << endl;
+
+	// Apply SVD again: Fp = UpDpVpt
+	Mat Up, Dp, Vpt;
+	SVD::compute(Fp, Dp, Up, Vpt, SVD::FULL_UV);
+
+	Mat DpTmp = Mat::zeros(3, 3, CV_32FC1);
+	DpTmp.at<float>(0, 0) = Dp.at<float>(0, 0);
+	DpTmp.at<float>(1, 1) = Dp.at<float>(1, 0);
+	// Set the value of the least singular value to be 0 (i.e., the last element)
+	//DpTmp.at<float>(2, 2) = Dp.at<float>(2, 0);
+
+	cout << "Up: " << Up << endl;
+	cout << "Dp: " << DpTmp << endl;
+	cout << "Vpt: " << Vpt << endl;
+
+	// F = U'D''V't
+	fundamentalMatrix = Up * DpTmp * Vpt;
+
+	return fundamentalMatrix;
+}
+
 void ThreeDimReconstruction::process(void) {
 	vector<vector<SIFTFeature>> featuresOfImages;
 
@@ -245,14 +317,23 @@ void ThreeDimReconstruction::process(void) {
 		vector<pair<SIFTFeature, SIFTFeature>> matchings = SIFTFeatureMatching(this->images[0], featuresOfImages[0], this->images[1], featuresOfImages[1]);
 		//visualizeFeatures(this->images[0], featuresOfImages[0]);
 		//visualizeFeatures(this->images[1], featuresOfImages[1]);
-		printf("%d matchings found\n", matchings.size());
+		cout << matchings.size() << " features matched!" << endl;
+
+		
+		matchings.resize(15);	// Top-15 matches
 
 		for (auto& matching : matchings) {
 			//printf("%f\n", sqrt(euclideanDistanceSquared(matching.first.descriptor, matching.second.descriptor)));
+			cout << matching.first.keypoint.pt << "\t" << matching.second.keypoint.pt << endl;
 		}
-		matchings.resize(15);
 		Img visualizeMatchingsImg = visualizeMatchings(this->images[0], this->images[1], matchings);
 		imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingsImg.name + ".jpg", visualizeMatchingsImg.mat);
+		
+
+		// 8-point algorithm
+		Mat fundamentalMatrix = eightPointAlgorithm(matchings);
+		cout << "F: " << fundamentalMatrix << endl;
+
 	}
 
 	this->wait();
