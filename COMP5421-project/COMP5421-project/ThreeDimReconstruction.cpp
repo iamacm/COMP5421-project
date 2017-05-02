@@ -296,6 +296,10 @@ Mat ThreeDimReconstruction::eightPointAlgorithm(const vector<pair<SIFTFeature, S
 	// F = U'D''V't
 	fundamentalMatrix = Up * DpTmp * Vpt;
 
+	// Normalize F such that the last element must be 1
+	float normalizationFactor = 1.0f / fundamentalMatrix.at<float>(2, 2);
+	fundamentalMatrix.mul(normalizationFactor);
+
 	return fundamentalMatrix;
 }
 
@@ -320,7 +324,7 @@ void ThreeDimReconstruction::process(void) {
 		cout << matchings.size() << " features matched!" << endl;
 
 		
-		matchings.resize(15);	// Top-15 matches
+		matchings.resize(30);	// Top-15 matches
 
 		for (auto& matching : matchings) {
 			//printf("%f\n", sqrt(euclideanDistanceSquared(matching.first.descriptor, matching.second.descriptor)));
@@ -331,8 +335,22 @@ void ThreeDimReconstruction::process(void) {
 		
 
 		// 8-point algorithm
-		Mat fundamentalMatrix = eightPointAlgorithm(matchings);
+		Mat fundamentalMatrix = eightPointAlgorithm(matchings, 30);
 		cout << "F: " << fundamentalMatrix << endl;
+
+		// Check top 10 results
+		for (auto& matching : matchings) {
+			Mat up(1, 3, CV_32FC1), u(1, 3, CV_32FC1);
+			up.at<float>(0, 0) = matching.first.keypoint.pt.x;
+			up.at<float>(0, 1) = matching.first.keypoint.pt.y;
+			up.at<float>(0, 2) = 1;
+			u.at<float>(0, 0) = matching.second.keypoint.pt.x;
+			u.at<float>(0, 1) = matching.second.keypoint.pt.y;
+			u.at<float>(0, 2) = 1;
+
+
+			cout << "u'Fut: " << up * fundamentalMatrix * u.t() << endl; 
+		}
 
 	}
 
