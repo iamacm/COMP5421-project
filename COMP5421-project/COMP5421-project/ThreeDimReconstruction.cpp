@@ -44,10 +44,10 @@ int nearestNeighbor(const SIFTFeature& feature1, const vector<SIFTFeature>& feat
 // Calculate the vector of the epipolar line based on F
 Mat calculateEpipolarLine(const Mat& F, Point2f pt) {
 	// l' = Fu is the epipolar line, where u is (x, y, 1)
-	Mat u(3, 1, CV_32FC1);
-	u.at<float>(0, 0) = pt.x;
-	u.at<float>(1, 0) = pt.y;
-	u.at<float>(2, 0) = 1;
+	Mat u(3, 1, CV_64FC1);
+	u.at<double>(0, 0) = pt.x;
+	u.at<double>(1, 0) = pt.y;
+	u.at<double>(2, 0) = 1;
 
 	return F * u;
 }
@@ -82,7 +82,7 @@ ThreeDimReconstruction::Img ThreeDimReconstruction::Img::clone() const {
 }
 
 // Display the image of ID with aspect ratio kept
-void ThreeDimReconstruction::Img::show(float resizeRatio) const {
+void ThreeDimReconstruction::Img::show(double resizeRatio) const {
 	const int MAX_WIDTH = SCREEN_WIDTH * resizeRatio;
 	const int MAX_HEIGHT = SCREEN_HEIGHT * resizeRatio;
 
@@ -102,7 +102,7 @@ void ThreeDimReconstruction::Img::show(float resizeRatio) const {
 }
 
 // Display an image with another image together in the same window, horizontally merged
-void ThreeDimReconstruction::Img::showWith(ThreeDimReconstruction::Img anotherImg, float resizeRatio) const {
+void ThreeDimReconstruction::Img::showWith(ThreeDimReconstruction::Img anotherImg, double resizeRatio) const {
 	Img bothImg;
 	hconcat(this->mat, anotherImg.mat, bothImg.mat);
 	bothImg.name = this->name + " with " + anotherImg.name;
@@ -143,7 +143,7 @@ void ThreeDimReconstruction::processHarrisCorner(void) {
 	Img imgFiltered;
 	imgFiltered.name = "Image blurred";
 	int kernel_size = 100;
-	Mat kernel = Mat::ones(kernel_size, kernel_size, CV_32F) / (float)(kernel_size*kernel_size);
+	Mat kernel = Mat::ones(kernel_size, kernel_size, CV_32F) / (double)(kernel_size*kernel_size);
 	filter2D(this->img[0].mat, imgFiltered.mat, -1, kernel);
 	this->show(imgFiltered);
 	this->wait();
@@ -241,13 +241,13 @@ ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchingWithEpipola
 		const Mat lp = calculateEpipolarLine(F, feature1.keypoint.pt);
 		// i.e., a'x + b'y + c = 0 is the line l'
 		// Then, draw the line from point (0, -c'/b') to (cols, -(a'cols+c')/b'
-		float ap = lp.at<float>(0, 0), bp = lp.at<float>(1, 0), cp = lp.at<float>(2, 0);
+		double ap = lp.at<double>(0, 0), bp = lp.at<double>(1, 0), cp = lp.at<double>(2, 0);
 		line(matchingImg.mat, Point(0 + img1.mat.cols, -cp / bp), Point(img2.mat.cols + img1.mat.cols, -(ap * img1.mat.cols + cp) / bp), color, 3);
 
 		printf("Haha test: u'l' = %f\n", feature2.keypoint.pt.x * ap + feature2.keypoint.pt.y * bp + 1 * cp);
 		// Draw epipolar lines
 		const Mat l = calculateEpipolarLine(Ft, feature2.keypoint.pt);	// l = Ftu', simiular to l'
-		float a = l.at<float>(0, 0), b = l.at<float>(1, 0), c = l.at<float>(2, 0);
+		double a = l.at<double>(0, 0), b = l.at<double>(1, 0), c = l.at<double>(2, 0);
 		line(matchingImg.mat, Point(0, -c / b), Point(img1.mat.cols, -(a * img1.mat.cols + c) / b), color, 3);
 
 		++count;
@@ -291,13 +291,13 @@ vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatchi
 
 // Output the fundamental matrix F
 Mat ThreeDimReconstruction::eightPointAlgorithm(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const int N) {
-	Mat fundamentalMatrix(3, 3, CV_32FC1);
+	Mat fundamentalMatrix(3, 3, CV_64FC1);
 
 	if (N < 8 || matchings.size() < N) {
 		throw Exception();
 	}
 
-	Mat A(N, 9, CV_32FC1);
+	Mat A(N, 9, CV_64FC1);
 
 	for (int n = 0; n < N; ++n) {
 		const Point2f& point1 = matchings[n].first.keypoint.pt;
@@ -305,13 +305,13 @@ Mat ThreeDimReconstruction::eightPointAlgorithm(const vector<pair<SIFTFeature, S
 		// Epipolar constraints u1Fu2 = 0, where u = (x, y, 1) and up = (xp, yp, 1)
 		// Eqivalent to AF = 0, where
 		// A(i) = (xpx, xpy, xp, ypx, ypy, yp, x, y, 1)
-		const float u[3] = { point1.x, point1.y, 1 };
-		const float up[3] = { point2.x, point2.y, 1 };
+		const double u[3] = { point1.x, point1.y, 1 };
+		const double up[3] = { point2.x, point2.y, 1 };
 		
 
 		for (int i = 0; i < 3; ++i) {
 			for (int j = 0; j < 3; ++j) {
-				A.at<float>(n, i * 3 + j) = up[i] * u[j];
+				A.at<double>(n, i * 3 + j) = up[i] * u[j];
 			}
 		}
 	}
@@ -331,11 +331,11 @@ Mat ThreeDimReconstruction::eightPointAlgorithm(const vector<pair<SIFTFeature, S
 	// F' = the last column (i.e., with least singular value) of V
 	Mat FpTmp = Vt.row(Vt.rows - 1).t();
 	// Remake Fp to be from 1 x 9 back to 3 x 3
-	Mat Fp(3, 3, CV_32FC1);
+	Mat Fp(3, 3, CV_64FC1);
 
 	for (int i = 0; i < 3; ++i) {
 		for (int j = 0; j < 3; ++j) {
-			Fp.at<float>(i, j) = FpTmp.at<float>(i * 3 + j, 0);
+			Fp.at<double>(i, j) = FpTmp.at<double>(i * 3 + j, 0);
 		}
 	}
 
@@ -345,11 +345,11 @@ Mat ThreeDimReconstruction::eightPointAlgorithm(const vector<pair<SIFTFeature, S
 	Mat Up, Dp, Vpt;
 	SVD::compute(Fp, Dp, Up, Vpt, SVD::FULL_UV);
 
-	Mat DpTmp = Mat::zeros(3, 3, CV_32FC1);
-	DpTmp.at<float>(0, 0) = Dp.at<float>(0, 0);
-	DpTmp.at<float>(1, 1) = Dp.at<float>(1, 0);
+	Mat DpTmp = Mat::zeros(3, 3, CV_64FC1);
+	DpTmp.at<double>(0, 0) = Dp.at<double>(0, 0);
+	DpTmp.at<double>(1, 1) = Dp.at<double>(1, 0);
 	// Set the value of the least singular value to be 0 (i.e., the last element)
-	//DpTmp.at<float>(2, 2) = Dp.at<float>(2, 0);
+	//DpTmp.at<double>(2, 2) = Dp.at<double>(2, 0);
 
 	cout << "Up: " << Up << endl;
 	cout << "Dp: " << DpTmp << endl;
@@ -359,7 +359,7 @@ Mat ThreeDimReconstruction::eightPointAlgorithm(const vector<pair<SIFTFeature, S
 	fundamentalMatrix = Up * DpTmp * Vpt;
 
 	// Normalize F such that the last element must be 1
-	float normalizationFactor = 1.0f / fundamentalMatrix.at<float>(2, 2);
+	double normalizationFactor = 1.0f / fundamentalMatrix.at<double>(2, 2);
 	fundamentalMatrix.mul(normalizationFactor);
 
 	// Library TMP
@@ -371,11 +371,11 @@ Mat ThreeDimReconstruction::eightPointAlgorithm(const vector<pair<SIFTFeature, S
 	}
 	Mat fundamentalMatrixTmp =
 		findFundamentalMat(points1, points2, FM_8POINT);
-	fundamentalMatrixTmp.convertTo(fundamentalMatrixTmp, CV_32FC1);
+	fundamentalMatrixTmp.convertTo(fundamentalMatrixTmp, CV_64FC1);
 
 	cout << "F" << fundamentalMatrix << endl;
 	cout << "Ftmp: " << fundamentalMatrixTmp << endl;
-	return fundamentalMatrixTmp;
+	return fundamentalMatrix;
 }
 
 void ThreeDimReconstruction::process(void) {
@@ -417,13 +417,13 @@ void ThreeDimReconstruction::process(void) {
 		// Check top 10 results
 		for (auto& matching : matchings) {
 			printf("Ratio test: %f\t%f\n", matching.first.keypoint.size, matching.second.keypoint.size);
-			Mat up(3, 1, CV_32FC1), u(3, 1, CV_32FC1);
-			up.at<float>(0, 0) = matching.second.keypoint.pt.x;
-			up.at<float>(1, 0) = matching.second.keypoint.pt.y;
-			up.at<float>(2, 0) = 1;
-			u.at<float>(0, 0) = matching.first.keypoint.pt.x;
-			u.at<float>(1, 0) = matching.first.keypoint.pt.y;
-			u.at<float>(2, 0) = 1;
+			Mat up(3, 1, CV_64FC1), u(3, 1, CV_64FC1);
+			up.at<double>(0, 0) = matching.second.keypoint.pt.x;
+			up.at<double>(1, 0) = matching.second.keypoint.pt.y;
+			up.at<double>(2, 0) = 1;
+			u.at<double>(0, 0) = matching.first.keypoint.pt.x;
+			u.at<double>(1, 0) = matching.first.keypoint.pt.y;
+			u.at<double>(2, 0) = 1;
 
 			cout << "u'tFu: " << up.t() * fundamentalMatrix * u << endl; 
 		}

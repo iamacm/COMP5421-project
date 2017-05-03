@@ -24,8 +24,8 @@ class ThreeDimReconstruction {
 		Img(string path);
 		// Methods
 		ThreeDimReconstruction::Img clone() const;
-		void show(float resizeRatio = 0.50) const;
-		void showWith(Img img, float resizeRatio = 0.95) const;
+		void show(double resizeRatio = 0.50) const;
+		void showWith(Img img, double resizeRatio = 0.95) const;
 		// Properties
 		Mat mat;
 		string path, name;
