@@ -259,7 +259,7 @@ ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchingWithEpipola
 vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatching(const Img& img1, const vector<SIFTFeature> features1, const Img& img2, const vector<SIFTFeature> features2) {
 	// For each feature of mat1, find the best feature to be matched with mat2
 	vector<pair<SIFTFeature, SIFTFeature>> matchings;
-	const int k = 1;
+	const double RATIO_REQUIRED = 0.75;	// For ratio test
 
 
 	for (int feature1Id = 0; feature1Id < features1.size(); ++feature1Id) {
@@ -267,8 +267,12 @@ vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatchi
 		const int img2MatchedFeatureId = nearestNeighbor(feature, features2);
 		const SIFTFeature& img2MatchedFeature = features2[img2MatchedFeatureId];
 
+		double ratio = feature.keypoint.size / img2MatchedFeature.keypoint.size;
 
-		if (nearestNeighbor(img2MatchedFeature, features1) == feature1Id) {
+		if (nearestNeighbor(img2MatchedFeature, features1) == feature1Id && 
+			ratio >= RATIO_REQUIRED && ratio <= 1.0 / RATIO_REQUIRED	// Ratio test passed
+			) {
+			//printf("Ratio test: %f\t%f\n", feature.keypoint.size, img2MatchedFeature.keypoint.size);
 			matchings.push_back(make_pair(feature, img2MatchedFeature));
 		}
 
@@ -402,7 +406,7 @@ void ThreeDimReconstruction::process(void) {
 			cout << matching.first.keypoint.pt << "\t" << matching.second.keypoint.pt << endl;
 		}
 		Img visualizeMatchingsImg = visualizeMatchings(this->images[0], this->images[1], matchings);
-		visualizeMatchingsImg.show();
+		visualizeMatchingsImg.show(0.9);
 		imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingsImg.name + ".jpg", visualizeMatchingsImg.mat);
 		
 		
@@ -412,6 +416,7 @@ void ThreeDimReconstruction::process(void) {
 		
 		// Check top 10 results
 		for (auto& matching : matchings) {
+			printf("Ratio test: %f\t%f\n", matching.first.keypoint.size, matching.second.keypoint.size);
 			Mat up(3, 1, CV_32FC1), u(3, 1, CV_32FC1);
 			up.at<float>(0, 0) = matching.second.keypoint.pt.x;
 			up.at<float>(1, 0) = matching.second.keypoint.pt.y;
@@ -424,7 +429,7 @@ void ThreeDimReconstruction::process(void) {
 		}
 		
 
-		visualizeMatchingWithEpipolarLines(this->images[0], this->images[1], matchings, fundamentalMatrix).show();
+		visualizeMatchingWithEpipolarLines(this->images[0], this->images[1], matchings, fundamentalMatrix).show(0.9);
 
 	}
 
