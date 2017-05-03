@@ -191,7 +191,7 @@ ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeFeatures(const Img&
 
 
 
-ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchings(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>>& matchings) {
+ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchings(const Img& img1, const Img& img2, const vector<Matching>& matchings) {
 	Img matchingImg;
 	matchingImg.name = "Matching of " + img1.name + " & " + img2.name;
 	Size matchingImgsize(img1.mat.size().width + img2.mat.size().width, max(img1.mat.size().height, img2.mat.size().height));
@@ -202,7 +202,7 @@ ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchings(const Img
 	img2.mat.copyTo(matchingImg.mat(Rect(img1.mat.size().width, 0, img2.mat.size().width, img2.mat.size().height)));
 
 	// Circle keypoints and draw lines
-	for (const pair<SIFTFeature, SIFTFeature>& matching : matchings) {
+	for (const Matching& matching : matchings) {
 		const SIFTFeature& feature1 = matching.first;
 		const SIFTFeature& feature2 = matching.second;
 		// Circle feature1
@@ -217,7 +217,7 @@ ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchings(const Img
 }
 
 
-ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchingWithEpipolarLines(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const Mat& F) {
+ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchingWithEpipolarLines(const Img& img1, const Img& img2, const vector<Matching>& matchings, const Mat& F) {
 	const Mat& Ft = F.t();
 	Img matchingImg;
 	matchingImg.name = "Matching of " + img1.name + " & " + img2.name + " with epipolar lines";
@@ -231,7 +231,7 @@ ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchingWithEpipola
 	// Circle keypoints and draw lines
 	int count = 0;
 
-	for (const pair<SIFTFeature, SIFTFeature>& matching : matchings) {
+	for (const Matching& matching : matchings) {
 		const SIFTFeature& feature1 = matching.first;
 		const SIFTFeature& feature2 = matching.second;
 		const Scalar color(128 * (count & 0x4) + 127, 128 * (count & 0x2) + 127, 128 * (count & 0x1) + 127);
@@ -263,9 +263,9 @@ ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchingWithEpipola
 	return matchingImg;
 }
 
-vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatching(const Img& img1, const vector<SIFTFeature> features1, const Img& img2, const vector<SIFTFeature> features2) {
+vector<Matching> ThreeDimReconstruction::SIFTFeatureMatching(const Img& img1, const vector<SIFTFeature> features1, const Img& img2, const vector<SIFTFeature> features2) {
 	// For each feature of mat1, find the best feature to be matched with mat2
-	vector<pair<SIFTFeature, SIFTFeature>> matchings;
+	vector<Matching> matchings;
 	const double RATIO_REQUIRED = 0.75;	// For ratio test
 
 
@@ -284,8 +284,11 @@ vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatchi
 			//cout << "imageDistance : " << imageDistance << endl;
 
 			//printf("Ratio test: %f\t%f\n", feature.keypoint.size, img2MatchedFeature.keypoint.size);
-			if (imageDistance <= 500) {
-				matchings.push_back(make_pair(feature, img2MatchedFeature));
+			if (imageDistance <= 1000) {
+				Matching m(feature, img2MatchedFeature);
+				m.imgDist = imageDistance;
+				m.descriptorDistSquared = euclideanDistanceSquared(feature.descriptor, img2MatchedFeature.descriptor);
+				matchings.push_back(m);
 			}
 		}
 
@@ -293,10 +296,9 @@ vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatchi
 	}
 
 	// Sort by distance diff
-	sort(matchings.begin(), matchings.end(), [](const pair<SIFTFeature, SIFTFeature>& prev, const pair<SIFTFeature, SIFTFeature>& next) {
-		int prevDistance = euclideanDistanceSquared(prev.first.descriptor, prev.second.descriptor);
-		int nextDistance = euclideanDistanceSquared(next.first.descriptor, next.second.descriptor);
-		return prevDistance < nextDistance;
+	sort(matchings.begin(), matchings.end(), [](const Matching& prev, const Matching& next) {
+
+		return prev.descriptorDistSquared < next.descriptorDistSquared;
 	});
 
 	return matchings;
@@ -307,7 +309,7 @@ vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatchi
 // Output the fundamental matrix F
 // If N == 7, seven-point algorithm is used
 // If N >= 8, eight-point algorithm is used
-Mat ThreeDimReconstruction::computeFundamentalMatrix(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const int N) {
+Mat ThreeDimReconstruction::computeFundamentalMatrix(const vector<Matching>& matchings, const int N) {
 	Mat fundamentalMatrix(3, 3, CV_64FC1);
 
 	if (N < 7 || matchings.size() < N) {
@@ -451,7 +453,7 @@ Mat ThreeDimReconstruction::computeFundamentalMatrix(const vector<pair<SIFTFeatu
 
 
 // Rows of 3D points
-Mat ThreeDimReconstruction::twoViewTriangulation(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const Mat& F) {
+Mat ThreeDimReconstruction::twoViewTriangulation(const vector<Matching>& matchings, const Mat& F) {
 	if (matchings.size() < 5) {
 		throw Exception();
 	}
@@ -554,7 +556,7 @@ Mat ThreeDimReconstruction::twoViewTriangulation(const vector<pair<SIFTFeature, 
 
 	vector<Point2f> projPoints1, projPoints2;
 
-	for (const pair<SIFTFeature, SIFTFeature>& matching : matchings) {
+	for (const Matching& matching : matchings) {
 		projPoints1.push_back(matching.first.keypoint.pt);
 		projPoints2.push_back(matching.second.keypoint.pt);
 	}
@@ -664,21 +666,24 @@ void ThreeDimReconstruction::process(void) {
 
 	if (this->images.size() >= 2) {
 
-		vector<pair<SIFTFeature, SIFTFeature>> allMatchings = SIFTFeatureMatching(this->images[0], featuresOfImages[0], this->images[1], featuresOfImages[1]);
-		vector<pair<SIFTFeature, SIFTFeature>> matchings = allMatchings;
+		vector<Matching> allMatchings = SIFTFeatureMatching(this->images[0], featuresOfImages[0], this->images[1], featuresOfImages[1]);
+		vector<Matching> matchings = allMatchings;
 		//visualizeFeatures(this->images[0], featuresOfImages[0]);
 		//visualizeFeatures(this->images[1], featuresOfImages[1]);
 		cout << allMatchings.size() << " features matched!" << endl;
 
 
-		matchings.resize(300);	// Top-100 matches
-
+		if (matchings.size() > 300) {
+			matchings.resize(300);	// Top-100 matches
+		}
 
 		int outlierCount = 0, iteration = 0;
 		Mat fundamentalMatrix;
+		fundamentalMatrix = computeFundamentalMatrix(matchings, 20);
+		
 		do {
 			outlierCount = 0;
-			fundamentalMatrix = computeFundamentalMatrix(matchings, 20);
+			
 			cout << "F: " << fundamentalMatrix << endl;
 
 			// Check top results
@@ -694,14 +699,14 @@ void ThreeDimReconstruction::process(void) {
 				u.at<double>(2, 0) = 1;
 
 				Mat uptFu = up.t() * fundamentalMatrix * u;
-				if (abs(uptFu.at<double>(0, 0)) > 1.0) {
-					outlier = true;
+				if (pow(uptFu.at<double>(0, 0), 2) > 10.0) {
+					//outlier = true;
 					++outlierCount;
 				}
 
 				if (outlier) {
 					// Remove outlier
-					cout << "Outlier: u'tFu: " << uptFu << endl;
+					//cout << "Outlier: u'tFu: " << uptFu << endl;
 					matchings.erase(it);
 				}
 				else {
@@ -710,7 +715,7 @@ void ThreeDimReconstruction::process(void) {
 			}
 			++iteration;
 		} while (outlierCount > 0 && iteration <= 5);
-
+		
 		for (auto& matching : matchings) {
 			//printf("%f\n", sqrt(euclideanDistanceSquared(matching.first.descriptor, matching.second.descriptor)));
 			cout << matching.first.keypoint.pt << "\t" << matching.second.keypoint.pt << endl;
@@ -726,11 +731,11 @@ void ThreeDimReconstruction::process(void) {
 
 
 
-		vector<Point2f> points1(allMatchings.size());
-		vector<Point2f> points2(allMatchings.size());
-		for (int i = 0; i < allMatchings.size(); ++i) {
-			points1[i] = allMatchings[i].first.keypoint.pt;
-			points2[i] = allMatchings[i].second.keypoint.pt;
+		vector<Point2f> points1(matchings.size());
+		vector<Point2f> points2(matchings.size());
+		for (int i = 0; i < matchings.size(); ++i) {
+			points1[i] = matchings[i].first.keypoint.pt;
+			points2[i] = matchings[i].second.keypoint.pt;
 		}
 		fundamentalMatrix = findFundamentalMat(points1, points2, FM_RANSAC);
 

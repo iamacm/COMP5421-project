@@ -5,6 +5,7 @@
 #include <opencv2/nonfree/nonfree.hpp>
 
 namespace cv {
+
 	class SIFTFeature {
 	public:
 		SIFTFeature();

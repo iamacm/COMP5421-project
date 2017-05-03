@@ -12,7 +12,15 @@ using namespace cv;
 using namespace std;
 
 
-
+class Matching: public pair<SIFTFeature, SIFTFeature> {
+public:
+	Matching() {};
+	Matching(SIFTFeature x, SIFTFeature y) {
+		this->first = x;
+		this->second = y;
+	};
+	double descriptorDistSquared, imgDist;
+};
 
 class ThreeDimReconstruction {
 	// Sub-class Img
@@ -49,11 +57,11 @@ public:
 
 	// Visualization methods
 	Img visualizeFeatures(const Img& img, const vector<SIFTFeature>& features) const;
-	Img visualizeMatchings(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>>& matchings);
-	Img visualizeMatchingWithEpipolarLines(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const Mat& F);
-	vector<pair<SIFTFeature, SIFTFeature>> SIFTFeatureMatching(const Img& img1, const vector<SIFTFeature> features1, const Img& img2, const vector<SIFTFeature> features2);
-	Mat computeFundamentalMatrix(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const int N = 8);
-	Mat twoViewTriangulation(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const Mat& F);
+	Img visualizeMatchings(const Img& img1, const Img& img2, const vector<Matching>& matchings);
+	Img visualizeMatchingWithEpipolarLines(const Img& img1, const Img& img2, const vector<Matching>& matchings, const Mat& F);
+	vector<Matching> SIFTFeatureMatching(const Img& img1, const vector<SIFTFeature> features1, const Img& img2, const vector<SIFTFeature> features2);
+	Mat computeFundamentalMatrix(const vector<Matching>& matchings, const int N = 8);
+	Mat twoViewTriangulation(const vector<Matching>& matchings, const Mat& F);
 	void writePly(const string& file, const Mat& points3D);
 	void process(void);
 	void wait(void) const;
