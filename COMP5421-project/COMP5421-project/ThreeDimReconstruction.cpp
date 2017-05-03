@@ -244,7 +244,7 @@ ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchingWithEpipola
 		double ap = lp.at<double>(0, 0), bp = lp.at<double>(1, 0), cp = lp.at<double>(2, 0);
 		line(matchingImg.mat, Point(0 + img1.mat.cols, -cp / bp), Point(img2.mat.cols + img1.mat.cols, -(ap * img1.mat.cols + cp) / bp), color, 3);
 
-		printf("Haha test: u'l' = %f\n", feature2.keypoint.pt.x * ap + feature2.keypoint.pt.y * bp + 1 * cp);
+		//printf("Haha test: u'l' = %f\n", feature2.keypoint.pt.x * ap + feature2.keypoint.pt.y * bp + 1 * cp);
 		// Draw epipolar lines
 		const Mat l = calculateEpipolarLine(Ft, feature2.keypoint.pt);	// l = Ftu', simiular to l'
 		double a = l.at<double>(0, 0), b = l.at<double>(1, 0), c = l.at<double>(2, 0);
@@ -445,6 +445,130 @@ Mat ThreeDimReconstruction::computeFundamentalMatrix(const vector<pair<SIFTFeatu
 	return fundamentalMatrix;
 }
 
+void ThreeDimReconstruction::twoViewTriangulation(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const Mat& F) {
+	if (matchings.size() < 5) {
+		throw Exception();
+	}
+	// Intrinsic parameter K and Kp
+	Mat K = Mat::zeros(3, 3, CV_64FC1);
+	K.at<double>(0, 0) = 2759.48;
+	K.at<double>(1, 1) = 2764.16;
+	K.at<double>(0, 2) = 1520.69;
+	K.at<double>(1, 2) = 1006.81;
+	K.at<double>(2, 2) = 1;
+	Mat Kp = K.clone();
+
+	// Compute the inverse matrix
+	Mat KInv = K.inv();
+	Mat KpInv = Kp.inv();
+
+	cout << "K: " << K << endl;
+	cout << "KInv: " << KInv << endl;
+
+	// Essential matrix
+	// E = K't F K
+	Mat E = Kp.t() * F * K;
+
+	cout << "E: " << E << endl;
+	Mat U, Wdiag, Vt;
+	// SVD: E = UWVt
+	SVD::compute(E, Wdiag, U, Vt);
+
+	Mat W = Mat::zeros(3, 3, CV_64FC1);
+	W.at<double>(0, 0) = Wdiag.at<double>(0, 0);
+	W.at<double>(1, 1) = Wdiag.at<double>(1, 0);
+	W.at<double>(2, 2) = Wdiag.at<double>(2, 0);
+
+	cout << "U: " << U << endl;
+	cout << "W: " << W << endl;
+	cout << "Vt: " << Vt << endl;
+
+	Mat Diag = Mat::zeros(3, 3, CV_64F);
+	// Diag = (1 0 0; 0 1 0; 0 0 0)
+	Diag.at<double>(0, 0) = 1;
+	Diag.at<double>(1, 1) = 1;
+	E = U * Diag * Vt;
+
+	// D = (0 1 0; -1 0 0; 0 0 1)
+	Mat D = Mat::zeros(3, 3, CV_64F);
+	D.at<double>(0, 1) = 1;
+	D.at<double>(1, 0) = -1;
+	D.at<double>(2, 2) = 1;
+
+	// TWO possible values of R: R = UDVt or UDtVt
+	Mat R[2] = { U * D * Vt, U * D.t() * Vt };
+	// TWO possible values of t: +/- the last column vector of U
+	Mat t[2] = { U.col(U.cols - 1), U.col(U.cols - 1).mul(-1) };
+
+	// Choose the R and t such that both 3D points are positive
+	Mat testUp(3, 1, CV_64F);
+	testUp.at<double>(0, 0) = matchings[1].second.keypoint.pt.x;
+	testUp.at<double>(1, 0) = matchings[1].second.keypoint.pt.y;
+	testUp.at<double>(2, 0) = 1;
+	// Choose the first matched feature
+	Mat testXp = KpInv * testUp;
+	//testXp.at<double>(0, 0) = 1000;
+	//testXp.at<double>(1, 0) = 1000;
+	//testXp.at<double>(2, 0) = 1000;
+
+	cout << "testXp: " << testXp << endl;
+	// X = RX' + t
+	for (int i = 0; i < 2; ++i) {
+		for (int j = 0; j < 2; ++j) {
+			Mat testX = R[i] * testXp + t[j];
+			//cout << "tj: " << t[j] << endl;
+			//cout << "testX: " << testX << endl;
+			cout << "u: " << K * testX << endl;
+		}
+	}
+
+	/*
+	// 5-point algorithm
+	Mat A(5, 9, CV_64FC1);
+	for (int n = 0; n < 5; ++n) {
+		Point2f point1 = matchings[n].first.keypoint.pt;
+		Point2f point2 = matchings[n].second.keypoint.pt;
+
+		Mat u(3, 1, CV_64FC1, { point1.x, point1.y, 1 });		// (x, y, 1)
+		Mat up(3, 1, CV_64FC1, { point2.x, point2.y, 1 });		// (x', y', 1)
+
+		u.at<double>(0, 0) = point1.x;
+		u.at<double>(1, 0) = point1.y;
+		u.at<double>(2, 0) = 1;
+		up.at<double>(0, 0) = point2.x;
+		up.at<double>(1, 0) = point2.y;
+		up.at<double>(2, 0) = 1;
+
+		cout << "u: " << u << endl;
+
+		// x = K-1u
+		Mat x = KInv * u;
+		// x' = K'-1u'
+		Mat xp = KpInv * up;
+
+		for (int i = 0; i < 3; ++i) {
+			for (int j = 0; j < 3; ++j) {
+				A.at<double>(n, i * 3 + j) = xp.at<double>(i, 0) * x.at<double>(j, 0);
+			}
+		}
+	}
+
+	// Apply SVD: A = UDVt
+	Mat U, D, Vt;
+	SVD::compute(A, D, U, Vt);
+
+
+
+	// Get the column of the the smallest singular value of V, i.e. the row of least v of Vt
+	// In fact, it is the last row of Vt
+	cout << "U:" << endl << U << endl;
+	cout << "D:" << endl << D << endl;
+	cout << "Vt:" << endl << Vt << endl;
+
+	*/
+	
+}
+
 void ThreeDimReconstruction::process(void) {
 	vector<vector<SIFTFeature>> featuresOfImages;
 
@@ -454,19 +578,21 @@ void ThreeDimReconstruction::process(void) {
 
 		printf("%d SIFT feature(s) found in %s\n", features.size(), img.name);
 
-		visualizeFeatures(img, features).show();
-
+		Img visualizeFeaturesImg = visualizeFeatures(img, features);
+		visualizeFeaturesImg.show();
+		imwrite(IMAGE_WRITE_FOLDER + visualizeFeaturesImg.name + ".jpg", visualizeFeaturesImg.mat);
 		featuresOfImages.push_back(features);
 	}
 
 	if (this->images.size() >= 2) {
+
 		vector<pair<SIFTFeature, SIFTFeature>> matchings = SIFTFeatureMatching(this->images[0], featuresOfImages[0], this->images[1], featuresOfImages[1]);
 		//visualizeFeatures(this->images[0], featuresOfImages[0]);
 		//visualizeFeatures(this->images[1], featuresOfImages[1]);
 		cout << matchings.size() << " features matched!" << endl;
 
 		
-		matchings.resize(7);	// Top-15 matches
+		matchings.resize(30);	// Top-30 matches
 
 		for (auto& matching : matchings) {
 			//printf("%f\n", sqrt(euclideanDistanceSquared(matching.first.descriptor, matching.second.descriptor)));
@@ -478,12 +604,11 @@ void ThreeDimReconstruction::process(void) {
 		
 		
 		// 8-point algorithm
-		Mat fundamentalMatrix = computeFundamentalMatrix(matchings, 7);
+		Mat fundamentalMatrix = computeFundamentalMatrix(matchings, 20);
 		cout << "F: " << fundamentalMatrix << endl;
 		
 		// Check top 10 results
 		for (auto& matching : matchings) {
-			printf("Ratio test: %f\t%f\n", matching.first.keypoint.size, matching.second.keypoint.size);
 			Mat up(3, 1, CV_64FC1), u(3, 1, CV_64FC1);
 			up.at<double>(0, 0) = matching.second.keypoint.pt.x;
 			up.at<double>(1, 0) = matching.second.keypoint.pt.y;
@@ -492,7 +617,7 @@ void ThreeDimReconstruction::process(void) {
 			u.at<double>(1, 0) = matching.first.keypoint.pt.y;
 			u.at<double>(2, 0) = 1;
 
-			cout << "u'tFu: " << up.t() * fundamentalMatrix * u << endl; 
+			//cout << "u'tFu: " << up.t() * fundamentalMatrix * u << endl; 
 		}
 		
 
@@ -500,9 +625,12 @@ void ThreeDimReconstruction::process(void) {
 		visualizeMatchingWithEpipolarLinesImg.show(0.9);
 		imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingWithEpipolarLinesImg.name + ".jpg", visualizeMatchingWithEpipolarLinesImg.mat);
 
+		twoViewTriangulation(matchings, fundamentalMatrix);
+
+		this->wait();
 	}
 
-	this->wait();
+	
 	
 
 }

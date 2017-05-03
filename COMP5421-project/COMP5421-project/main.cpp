@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 	ThreeDimReconstruction* threeDimRec = NULL;
 	if (argc != 3)
 	{
-		threeDimRec = new ThreeDimReconstruction("0000.png", "0001.png");
+		threeDimRec = new ThreeDimReconstruction("0005.png", "0006.png");
 		//cout << " Usage: display_image ImageToLoadAndDisplay" << endl;
 		//return -1;
 		//delete argv;
