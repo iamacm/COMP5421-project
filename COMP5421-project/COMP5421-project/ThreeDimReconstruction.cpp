@@ -298,7 +298,7 @@ vector<Matching> ThreeDimReconstruction::SIFTFeatureMatching(const Img& img1, co
 	// Sort by distance diff
 	sort(matchings.begin(), matchings.end(), [](const Matching& prev, const Matching& next) {
 
-		return prev.descriptorDistSquared < next.descriptorDistSquared;
+		return prev.descriptorDistSquared + prev.imgDist * 0.0001 < next.descriptorDistSquared + next.imgDist * 0.0001;
 	});
 
 	return matchings;
@@ -666,81 +666,92 @@ void ThreeDimReconstruction::process(void) {
 
 	if (this->images.size() >= 2) {
 
-		vector<Matching> allMatchings = SIFTFeatureMatching(this->images[0], featuresOfImages[0], this->images[1], featuresOfImages[1]);
-		vector<Matching> matchings = allMatchings;
-		//visualizeFeatures(this->images[0], featuresOfImages[0]);
-		//visualizeFeatures(this->images[1], featuresOfImages[1]);
-		cout << allMatchings.size() << " features matched!" << endl;
+
+		for (int imgI = 0; imgI < this->images.size() - 1; ++imgI) {
+			vector<Matching> allMatchings = 
+				SIFTFeatureMatching(this->images[imgI], featuresOfImages[imgI], this->images[imgI+1], featuresOfImages[imgI+1]);
+			vector<Matching> matchings = allMatchings;
+			//visualizeFeatures(this->images[0], featuresOfImages[0]);
+			//visualizeFeatures(this->images[1], featuresOfImages[1]);
+			cout << allMatchings.size() << " features matched!" << endl;
 
 
-		if (matchings.size() > 300) {
-			matchings.resize(300);	// Top-100 matches
-		}
-
-		int outlierCount = 0, iteration = 0;
-		Mat fundamentalMatrix;
-		fundamentalMatrix = computeFundamentalMatrix(matchings, 20);
-		
-		do {
-			outlierCount = 0;
-			
-			cout << "F: " << fundamentalMatrix << endl;
-
-			// Check top results
-			for (auto it = matchings.begin(); it != matchings.end(); ) {
-				const auto& matching = *it;
-				bool outlier = false;
-				Mat up(3, 1, CV_64FC1), u(3, 1, CV_64FC1);
-				up.at<double>(0, 0) = matching.second.keypoint.pt.x;
-				up.at<double>(1, 0) = matching.second.keypoint.pt.y;
-				up.at<double>(2, 0) = 1;
-				u.at<double>(0, 0) = matching.first.keypoint.pt.x;
-				u.at<double>(1, 0) = matching.first.keypoint.pt.y;
-				u.at<double>(2, 0) = 1;
-
-				Mat uptFu = up.t() * fundamentalMatrix * u;
-				if (pow(uptFu.at<double>(0, 0), 2) > 10.0) {
-					//outlier = true;
-					++outlierCount;
-				}
-
-				if (outlier) {
-					// Remove outlier
-					//cout << "Outlier: u'tFu: " << uptFu << endl;
-					matchings.erase(it);
-				}
-				else {
-					++it;
-				}
+			if (matchings.size() > 100) {
+				matchings.resize(100);	// Top-100 matches
 			}
-			++iteration;
-		} while (outlierCount > 0 && iteration <= 5);
+
+			int outlierCount = 0, iteration = 0;
+			Mat fundamentalMatrix;
+			fundamentalMatrix = computeFundamentalMatrix(matchings, 20);
+			
+			/*
+			do {
+				outlierCount = 0;
+
+				cout << "F: " << fundamentalMatrix << endl;
+
+				// Check top results
+
+				
+				for (auto it = matchings.begin(); it != matchings.end(); ) {
+					const auto& matching = *it;
+					bool outlier = false;
+					Mat up(3, 1, CV_64FC1), u(3, 1, CV_64FC1);
+					up.at<double>(0, 0) = matching.second.keypoint.pt.x;
+					up.at<double>(1, 0) = matching.second.keypoint.pt.y;
+					up.at<double>(2, 0) = 1;
+					u.at<double>(0, 0) = matching.first.keypoint.pt.x;
+					u.at<double>(1, 0) = matching.first.keypoint.pt.y;
+					u.at<double>(2, 0) = 1;
+
+					Mat uptFu = up.t() * fundamentalMatrix * u;
+					if (pow(uptFu.at<double>(0, 0), 2) > 10.0) {
+						//outlier = true;
+						++outlierCount;
+					}
+
+					if (outlier) {
+						// Remove outlier
+						//cout << "Outlier: u'tFu: " << uptFu << endl;
+						matchings.erase(it);
+					}
+					else {
+						++it;
+					}
+				}
+				++iteration;
+			} while (outlierCount > 0 && iteration <= 5);
+			*/
+
+			for (auto& matching : matchings) {
+				//printf("%f\n", sqrt(euclideanDistanceSquared(matching.first.descriptor, matching.second.descriptor)));
+				//cout << matching.first.keypoint.pt << "\t" << matching.second.keypoint.pt << endl;
+			}
+			Img visualizeMatchingsImg = 
+				visualizeMatchings(this->images[imgI], this->images[imgI+1], matchings);
+			visualizeMatchingsImg.show(0.9);
+			imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingsImg.name + ".jpg", visualizeMatchingsImg.mat);
+
+
+			Img visualizeMatchingWithEpipolarLinesImg = 
+				visualizeMatchingWithEpipolarLines(this->images[imgI], this->images[imgI+1], matchings, fundamentalMatrix);
+			visualizeMatchingWithEpipolarLinesImg.show(0.9);
+			imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingWithEpipolarLinesImg.name + ".jpg", visualizeMatchingWithEpipolarLinesImg.mat);
+
+
+
+			vector<Point2f> points1(matchings.size());
+			vector<Point2f> points2(matchings.size());
+			for (int i = 0; i < matchings.size(); ++i) {
+				points1[i] = matchings[i].first.keypoint.pt;
+				points2[i] = matchings[i].second.keypoint.pt;
+			}
+			fundamentalMatrix = findFundamentalMat(points1, points2, FM_RANSAC);
+
+			Mat points3D = twoViewTriangulation(allMatchings, fundamentalMatrix);
+			writePly(PLY_WRITE_FOLDER + this->images[imgI].name + "_" + this->images[imgI+1].name + ".ply", points3D);
+		}
 		
-		for (auto& matching : matchings) {
-			//printf("%f\n", sqrt(euclideanDistanceSquared(matching.first.descriptor, matching.second.descriptor)));
-			cout << matching.first.keypoint.pt << "\t" << matching.second.keypoint.pt << endl;
-		}
-		Img visualizeMatchingsImg = visualizeMatchings(this->images[0], this->images[1], matchings);
-		visualizeMatchingsImg.show(0.9);
-		imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingsImg.name + ".jpg", visualizeMatchingsImg.mat);
-
-
-		Img visualizeMatchingWithEpipolarLinesImg = visualizeMatchingWithEpipolarLines(this->images[0], this->images[1], matchings, fundamentalMatrix);
-		visualizeMatchingWithEpipolarLinesImg.show(0.9);
-		imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingWithEpipolarLinesImg.name + ".jpg", visualizeMatchingWithEpipolarLinesImg.mat);
-
-
-
-		vector<Point2f> points1(matchings.size());
-		vector<Point2f> points2(matchings.size());
-		for (int i = 0; i < matchings.size(); ++i) {
-			points1[i] = matchings[i].first.keypoint.pt;
-			points2[i] = matchings[i].second.keypoint.pt;
-		}
-		fundamentalMatrix = findFundamentalMat(points1, points2, FM_RANSAC);
-
-		Mat points3D = twoViewTriangulation(allMatchings, fundamentalMatrix);
-		writePly(PLY_WRITE_FOLDER + this->images[0].name + "_" + this->images[1].name + ".ply", points3D);
 		this->wait();
 	}
 
