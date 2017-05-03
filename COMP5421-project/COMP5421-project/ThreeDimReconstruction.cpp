@@ -445,7 +445,9 @@ Mat ThreeDimReconstruction::computeFundamentalMatrix(const vector<pair<SIFTFeatu
 	return fundamentalMatrix;
 }
 
-void ThreeDimReconstruction::twoViewTriangulation(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const Mat& F) {
+
+// Rows of 3D points
+Mat ThreeDimReconstruction::twoViewTriangulation(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const Mat& F) {
 	if (matchings.size() < 5) {
 		throw Exception();
 	}
@@ -472,22 +474,27 @@ void ThreeDimReconstruction::twoViewTriangulation(const vector<pair<SIFTFeature,
 	cout << "E: " << E << endl;
 	Mat U, Wdiag, Vt;
 	// SVD: E = UWVt
-	SVD::compute(E, Wdiag, U, Vt);
+	SVD::compute(E, Wdiag, U, Vt, SVD::FULL_UV);
 
 	Mat W = Mat::zeros(3, 3, CV_64FC1);
 	W.at<double>(0, 0) = Wdiag.at<double>(0, 0);
 	W.at<double>(1, 1) = Wdiag.at<double>(1, 0);
 	W.at<double>(2, 2) = Wdiag.at<double>(2, 0);
 
-	cout << "U: " << U << endl;
-	cout << "W: " << W << endl;
-	cout << "Vt: " << Vt << endl;
+	//cout << "U: " << U << endl;
+	//cout << "W: " << W << endl;
+	//cout << "Vt: " << Vt << endl;
 
 	Mat Diag = Mat::zeros(3, 3, CV_64F);
 	// Diag = (1 0 0; 0 1 0; 0 0 0)
 	Diag.at<double>(0, 0) = 1;
 	Diag.at<double>(1, 1) = 1;
+
 	E = U * Diag * Vt;
+	SVD::compute(E, Wdiag, U, Vt, SVD::FULL_UV);
+	cout << "U: " << U << endl;
+	cout << "Wdiag: " << Wdiag << endl;
+	cout << "Vt: " << Vt << endl;
 
 	// D = (0 1 0; -1 0 0; 0 0 1)
 	Mat D = Mat::zeros(3, 3, CV_64F);
@@ -502,25 +509,60 @@ void ThreeDimReconstruction::twoViewTriangulation(const vector<pair<SIFTFeature,
 
 	// Choose the R and t such that both 3D points are positive
 	Mat testUp(3, 1, CV_64F);
-	testUp.at<double>(0, 0) = matchings[1].second.keypoint.pt.x;
-	testUp.at<double>(1, 0) = matchings[1].second.keypoint.pt.y;
+	testUp.at<double>(0, 0) = matchings[0].second.keypoint.pt.x;
+	testUp.at<double>(1, 0) = matchings[0].second.keypoint.pt.y;
 	testUp.at<double>(2, 0) = 1;
 	// Choose the first matched feature
 	Mat testXp = KpInv * testUp;
-	//testXp.at<double>(0, 0) = 1000;
-	//testXp.at<double>(1, 0) = 1000;
-	//testXp.at<double>(2, 0) = 1000;
 
 	cout << "testXp: " << testXp << endl;
+
+	Mat finalR = R[0], finalt = t[0];
 	// X = RX' + t
 	for (int i = 0; i < 2; ++i) {
 		for (int j = 0; j < 2; ++j) {
 			Mat testX = R[i] * testXp + t[j];
 			//cout << "tj: " << t[j] << endl;
 			//cout << "testX: " << testX << endl;
+
+			bool sameSignTest =
+				testX.at<double>(0, 0) * testXp.at<double>(0, 0) > 0 &&
+				testX.at<double>(1, 0) * testXp.at<double>(1, 0) > 0 &&
+				testX.at<double>(2, 0) * testXp.at<double>(2, 0) > 0;
+
 			cout << "u: " << K * testX << endl;
+			cout << "sameSignTest: " << sameSignTest << endl;
+
+			if (sameSignTest) {
+				finalR = R[i];
+				finalt = t[j];
+			}
 		}
 	}
+
+
+	Mat p1 = K * Mat::eye(3, 4, CV_64F);	// p1 = K * (I | 0)
+	Mat p2;
+	hconcat(finalR, finalt, p2);		// p2 = K * (R | t)
+	p2 = K * p2;
+	Mat points4D;
+
+	vector<Point2f> projPoints1, projPoints2;
+
+	for (const pair<SIFTFeature, SIFTFeature>& matching : matchings) {
+		projPoints1.push_back(matching.first.keypoint.pt);
+		projPoints2.push_back(matching.second.keypoint.pt);
+	}
+
+
+	triangulatePoints(p1, p2, projPoints1, projPoints2, points4D);
+
+	//cout << "points4D: " << points4D << endl;
+
+	Mat points3D;
+	convertPointsFromHomogeneous(points4D.t(), points3D);
+
+	cout << "points3D: " << points3D << endl;
 
 	/*
 	// 5-point algorithm

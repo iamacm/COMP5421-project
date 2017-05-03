@@ -52,7 +52,7 @@ public:
 	Img visualizeMatchingWithEpipolarLines(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const Mat& F);
 	vector<pair<SIFTFeature, SIFTFeature>> SIFTFeatureMatching(const Img& img1, const vector<SIFTFeature> features1, const Img& img2, const vector<SIFTFeature> features2);
 	Mat computeFundamentalMatrix(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const int N = 8);
-	void twoViewTriangulation(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const Mat& F);
+	Mat twoViewTriangulation(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const Mat& F);
 	void process(void);
 	void wait(void) const;
 	
