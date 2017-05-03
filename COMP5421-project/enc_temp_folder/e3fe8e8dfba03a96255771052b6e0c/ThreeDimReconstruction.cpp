@@ -366,7 +366,7 @@ Mat ThreeDimReconstruction::eightPointAlgorithm(const vector<pair<SIFTFeature, S
 		points2[i] = matchings[i].second.keypoint.pt;
 	}
 	Mat fundamentalMatrixTmp =
-		findFundamentalMat(points1, points2, FM_8POINT);
+		findFundamentalMat(points1, points2, FM_8POINT).clone();
 	fundamentalMatrixTmp.convertTo(fundamentalMatrixTmp, CV_32FC1);
 
 	cout << "F" << fundamentalMatrix << endl;

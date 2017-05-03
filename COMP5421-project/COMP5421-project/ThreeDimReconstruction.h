@@ -45,8 +45,11 @@ public:
 	// Methods
 	void showOriginalImg(void) const;	// Show all images
 	void processHarrisCorner(void);
+
+	// Visualization methods
 	Img visualizeFeatures(const Img& img, const vector<SIFTFeature>& features) const;
 	Img visualizeMatchings(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>>& matchings);
+	Img visualizeMatchingWithEpipolarLines(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const Mat& F);
 	vector<pair<SIFTFeature, SIFTFeature>> SIFTFeatureMatching(const Img& img1, const vector<SIFTFeature> features1, const Img& img2, const vector<SIFTFeature> features2);
 	Mat eightPointAlgorithm(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const int N = 8);
 	void process(void);
