@@ -197,7 +197,7 @@ ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchings(const Img
 	Size matchingImgsize(img1.mat.size().width + img2.mat.size().width, max(img1.mat.size().height, img2.mat.size().height));
 	matchingImg.mat = Mat::zeros(matchingImgsize, CV_8UC3);	// Creating image of size
 
-															// Copy images to the matching image
+	// Copy images to the matching image
 	img1.mat.copyTo(matchingImg.mat(Rect(0, 0, img1.mat.size().width, img1.mat.size().height)));
 	img2.mat.copyTo(matchingImg.mat(Rect(img1.mat.size().width, 0, img2.mat.size().width, img2.mat.size().height)));
 
@@ -276,15 +276,15 @@ vector<Matching> ThreeDimReconstruction::SIFTFeatureMatching(const Img& img1, co
 
 		double ratio = feature.keypoint.size / img2MatchedFeature.keypoint.size;
 
-		if (nearestNeighbor(img2MatchedFeature, features1) == feature1Id &&
-			ratio >= RATIO_REQUIRED && ratio <= 1.0 / RATIO_REQUIRED // Ratio test passed 
+		if (nearestNeighbor(img2MatchedFeature, features1) == feature1Id &&		// Left-right check
+			ratio >= RATIO_REQUIRED && ratio <= 1.0 / RATIO_REQUIRED			// Ratio test passed 
 			) {
 
 			double imageDistance = norm(feature.keypoint.pt - img2MatchedFeature.keypoint.pt);
 			//cout << "imageDistance : " << imageDistance << endl;
 
 			//printf("Ratio test: %f\t%f\n", feature.keypoint.size, img2MatchedFeature.keypoint.size);
-			if (imageDistance <= 1000) {
+			if (imageDistance <= 500) {
 				Matching m(feature, img2MatchedFeature);
 				m.imgDist = imageDistance;
 				m.descriptorDistSquared = euclideanDistanceSquared(feature.descriptor, img2MatchedFeature.descriptor);
@@ -298,7 +298,7 @@ vector<Matching> ThreeDimReconstruction::SIFTFeatureMatching(const Img& img1, co
 	// Sort by distance diff
 	sort(matchings.begin(), matchings.end(), [](const Matching& prev, const Matching& next) {
 
-		return prev.descriptorDistSquared + prev.imgDist * 0.0001 < next.descriptorDistSquared + next.imgDist * 0.0001;
+		return prev.descriptorDistSquared < next.descriptorDistSquared;
 	});
 
 	return matchings;
@@ -453,7 +453,11 @@ Mat ThreeDimReconstruction::computeFundamentalMatrix(const vector<Matching>& mat
 
 
 // Rows of 3D points
-Mat ThreeDimReconstruction::twoViewTriangulation(const vector<Matching>& matchings, const Mat& F) {
+Mat ThreeDimReconstruction::twoViewTriangulation(
+	const vector<Matching>& matchings, const Mat& F, 
+	Mat& outputR, Mat& outputT,
+	const Mat* prevR, const Mat* prevT
+	) {
 	if (matchings.size() < 5) {
 		throw Exception();
 	}
@@ -524,7 +528,7 @@ Mat ThreeDimReconstruction::twoViewTriangulation(const vector<Matching>& matchin
 
 	cout << "testXp: " << testXp << endl;
 
-	Mat finalR = R[0], finalt = t[0];
+	outputR = R[0], outputT = t[0];
 	// X = RX' + t
 	for (int i = 0; i < 2; ++i) {
 		for (int j = 0; j < 2; ++j) {
@@ -541,17 +545,32 @@ Mat ThreeDimReconstruction::twoViewTriangulation(const vector<Matching>& matchin
 			cout << "sameSignTest: " << sameSignTest << endl;
 
 			if (sameSignTest) {
-				finalR = R[i];
-				finalt = t[j];
+				outputR = R[i];
+				outputT = t[j];
 			}
 		}
 	}
 
+	Mat p1, p2;
+	if (prevR == NULL || prevT == NULL) {
+		p1 = K * Mat::eye(3, 4, CV_64F);	// p1 = K * (I | 0)
+		hconcat(outputR, outputT, p2);		// p2 = K * (R | t)
+		p2 = K * p2;
+	}
+	else {
+		Mat Rij = outputR.clone();
+		Mat Tij = outputT.clone();
+		// Rj = Rij Ri
+		outputR = Rij * *prevR;
+		// tj = Rij ti + tij
+		outputT = Rij * *prevT + Tij;
 
-	Mat p1 = K * Mat::eye(3, 4, CV_64F);	// p1 = K * (I | 0)
-	Mat p2;
-	hconcat(finalR, finalt, p2);		// p2 = K * (R | t)
-	p2 = K * p2;
+		hconcat(*prevR, *prevT, p1);		// p1 = K * (prevR | prevt)
+		p1 = K * p1;
+		hconcat(outputR, outputT, p2);		// p2 = K * (R | t)
+		p2 = K * p2;
+	}
+
 	Mat points4D;
 
 	vector<Point2f> projPoints1, projPoints2;
@@ -626,7 +645,7 @@ void ThreeDimReconstruction::writePly(const string& file, const Mat& points3D) {
 	{
 		of << "ply" << endl;
 		of << "format ascii 1.0" << endl;
-		of << "comment VTK generated PLY File" << endl;
+		of << "comment COMP5421" << endl;
 		of << "obj_info vtkPolyData points and polygons: vtk4.0" << endl;
 		of << "element vertex " << points3D.rows << endl;
 		of << "property float x" << endl;
@@ -639,6 +658,16 @@ void ThreeDimReconstruction::writePly(const string& file, const Mat& points3D) {
 		for (int i = 0; i < points3D.rows; ++i) {
 			of << points3D.at<float>(i, 0) << "\t" << points3D.at<float>(i, 1) << "\t" << points3D.at<float>(i, 2) << endl;
 		}
+		of.close();
+	}
+	else cout << "Unable to open file " + file;
+}
+
+void ThreeDimReconstruction::writeFundamentalMatrix(const string& file, const Mat& F) {
+	ofstream of(file);
+	if (of.is_open())
+	{
+		of << F << endl;
 		of.close();
 	}
 	else cout << "Unable to open file " + file;
@@ -666,6 +695,9 @@ void ThreeDimReconstruction::process(void) {
 
 	if (this->images.size() >= 2) {
 
+		Mat prevR, prevT;
+
+		const int fundamentalMatrixN = 20;	// How many points to be used for 8-point algorithm?
 
 		for (int imgI = 0; imgI < this->images.size() - 1; ++imgI) {
 			vector<Matching> allMatchings = 
@@ -676,14 +708,16 @@ void ThreeDimReconstruction::process(void) {
 			cout << allMatchings.size() << " features matched!" << endl;
 
 
-			if (matchings.size() > 100) {
-				matchings.resize(100);	// Top-100 matches
+			if (matchings.size() > 300) {
+				matchings.resize(300);	// Top-300 matches
 			}
 
 			int outlierCount = 0, iteration = 0;
-			Mat fundamentalMatrix;
-			fundamentalMatrix = computeFundamentalMatrix(matchings, 20);
-			
+			Mat fundamentalMatrix, fundamentalMatrix7Pts;
+			fundamentalMatrix = computeFundamentalMatrix(matchings, fundamentalMatrixN);
+			fundamentalMatrix7Pts = computeFundamentalMatrix(matchings, 7);	// 7-point algo
+
+			writeFundamentalMatrix(IMAGE_WRITE_FOLDER + this->images[imgI].name + "_" + this->images[imgI + 1].name + " F.txt", fundamentalMatrix);
 			/*
 			do {
 				outlierCount = 0;
@@ -727,6 +761,10 @@ void ThreeDimReconstruction::process(void) {
 				//printf("%f\n", sqrt(euclideanDistanceSquared(matching.first.descriptor, matching.second.descriptor)));
 				//cout << matching.first.keypoint.pt << "\t" << matching.second.keypoint.pt << endl;
 			}
+
+			vector<Matching> matchingToVisualize = matchings;
+			matchingToVisualize.resize(fundamentalMatrixN);
+
 			Img visualizeMatchingsImg = 
 				visualizeMatchings(this->images[imgI], this->images[imgI+1], matchings);
 			visualizeMatchingsImg.show(0.9);
@@ -734,9 +772,15 @@ void ThreeDimReconstruction::process(void) {
 
 
 			Img visualizeMatchingWithEpipolarLinesImg = 
-				visualizeMatchingWithEpipolarLines(this->images[imgI], this->images[imgI+1], matchings, fundamentalMatrix);
+				visualizeMatchingWithEpipolarLines(this->images[imgI], this->images[imgI+1], matchingToVisualize, fundamentalMatrix);
 			visualizeMatchingWithEpipolarLinesImg.show(0.9);
 			imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingWithEpipolarLinesImg.name + ".jpg", visualizeMatchingWithEpipolarLinesImg.mat);
+
+
+			Img visualizeMatching7PtsWithEpipolarLinesImg =
+				visualizeMatchingWithEpipolarLines(this->images[imgI], this->images[imgI + 1], matchings, fundamentalMatrix7Pts);
+			//visualizeMatching7PtsWithEpipolarLinesImg.show(0.9);
+			imwrite(IMAGE_WRITE_FOLDER + visualizeMatching7PtsWithEpipolarLinesImg.name + ".jpg", visualizeMatching7PtsWithEpipolarLinesImg.mat);
 
 
 
@@ -747,9 +791,26 @@ void ThreeDimReconstruction::process(void) {
 				points2[i] = matchings[i].second.keypoint.pt;
 			}
 			fundamentalMatrix = findFundamentalMat(points1, points2, FM_RANSAC);
+			
+			Mat points3D;
+			Mat R, T;
+			if (imgI == 0) {
+				points3D = twoViewTriangulation(allMatchings, fundamentalMatrix, R, T);
+			}
+			else {
+				points3D = twoViewTriangulation(allMatchings, fundamentalMatrix, R, T, &prevR, &prevT);
+			}
 
-			Mat points3D = twoViewTriangulation(allMatchings, fundamentalMatrix);
-			writePly(PLY_WRITE_FOLDER + this->images[imgI].name + "_" + this->images[imgI+1].name + ".ply", points3D);
+			prevR = R.clone();
+			prevT = T.clone();
+
+			if (this->images.size() > 2) {
+				writePly(PLY_WRITE_FOLDER + this->images[imgI].name + "_" + this->images[imgI + 1].name + "(M).ply", points3D);
+			}
+			else {
+				writePly(PLY_WRITE_FOLDER + this->images[imgI].name + "_" + this->images[imgI + 1].name + ".ply", points3D);
+			}
+			
 		}
 		
 		this->wait();

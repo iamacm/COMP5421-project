@@ -61,8 +61,11 @@ public:
 	Img visualizeMatchingWithEpipolarLines(const Img& img1, const Img& img2, const vector<Matching>& matchings, const Mat& F);
 	vector<Matching> SIFTFeatureMatching(const Img& img1, const vector<SIFTFeature> features1, const Img& img2, const vector<SIFTFeature> features2);
 	Mat computeFundamentalMatrix(const vector<Matching>& matchings, const int N = 8);
-	Mat twoViewTriangulation(const vector<Matching>& matchings, const Mat& F);
+	Mat twoViewTriangulation(const vector<Matching>& matchings, const Mat& F,
+		Mat& outputR, Mat& outputT,
+		const Mat* prevR = NULL, const Mat* prevT = NULL);
 	void writePly(const string& file, const Mat& points3D);
+	void writeFundamentalMatrix(const string& file, const Mat& F);
 	void process(void);
 	void wait(void) const;
 	
