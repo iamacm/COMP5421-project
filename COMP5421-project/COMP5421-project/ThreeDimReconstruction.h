@@ -44,7 +44,7 @@ public:
 	ThreeDimReconstruction(char* imgPath1, char* imgPath2);
 	// Methods
 	void showOriginalImg(void) const;	// Show all images
-	void processHarrisCorner(void);
+	Img processHarrisCorner(const Img& img);
 
 	// Visualization methods
 	Img visualizeFeatures(const Img& img, const vector<SIFTFeature>& features) const;
@@ -53,6 +53,7 @@ public:
 	vector<pair<SIFTFeature, SIFTFeature>> SIFTFeatureMatching(const Img& img1, const vector<SIFTFeature> features1, const Img& img2, const vector<SIFTFeature> features2);
 	Mat computeFundamentalMatrix(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const int N = 8);
 	Mat twoViewTriangulation(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const Mat& F);
+	void writePly(const string& file, const Mat& points3D);
 	void process(void);
 	void wait(void) const;
 	

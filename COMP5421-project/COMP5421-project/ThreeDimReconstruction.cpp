@@ -2,7 +2,8 @@
 #include <windows.h>
 #include <algorithm> 
 #include <stdint.h>
-#include <thread>
+#include <fstream>
+#include <string>
 #include <opencv2/opencv.hpp>
 #include <opencv2/nonfree/nonfree.hpp>
 #include "opencv2/core/core.hpp"
@@ -13,6 +14,7 @@
 #define	SCREEN_WIDTH				GetSystemMetrics(SM_CXSCREEN)
 #define	SCREEN_HEIGHT				GetSystemMetrics(SM_CYSCREEN)
 #define IMAGE_WRITE_FOLDER			"results/"
+#define PLY_WRITE_FOLDER			"ply/"
 // Global function
 int euclideanDistanceSquared(const Mat& mat1, const Mat& mat2) {
 	if (mat1.cols != mat2.cols) {
@@ -73,7 +75,7 @@ ThreeDimReconstruction::Img::Img(string path) {
 	}
 
 	// Name the image
-	this->name = "Image " + this->path;
+	this->name = "Image " + this->path.substr(this->path.length() - 8);
 
 }
 
@@ -138,7 +140,7 @@ void ThreeDimReconstruction::wait(void) const {
 	waitKey(0); // Wait for a keystroke in the window
 }
 
-void ThreeDimReconstruction::processHarrisCorner(void) {
+ThreeDimReconstruction::Img ThreeDimReconstruction::processHarrisCorner(const Img& img) {
 	/*
 	Img imgFiltered;
 	imgFiltered.name = "Image blurred";
@@ -150,22 +152,19 @@ void ThreeDimReconstruction::processHarrisCorner(void) {
 	*/
 	
 	//this->wait();
-	const int imgCount = this->images.size();
-	vector<vector<Point>> imgCorners;
-	vector<Img> imgCornersCircled(this->images.size());
+	//const int imgCount = this->images.size();
+	//vector<Point> imgCorners;
+	Img imgCornersCircled;
 
-	for (int i = 0; i < imgCount; ++i) {
-		vector<Point2d> corners = ThreeDimReconstruction::FeatureDetectors::detectHarrisCorner(this->images[i], false);
-		imgCornersCircled[i].mat = this->images[i].mat.clone();
-		for (const Point pt : corners) {
-			circle(imgCornersCircled[i].mat, pt, 15, Scalar(0, 0, 255), 5);
-		}
-		imgCornersCircled[i].name = this->images[i].name + " with cornered circled";
-		imgCornersCircled[i].show();
-		
+
+	vector<Point2d> corners = ThreeDimReconstruction::FeatureDetectors::detectHarrisCorner(img, false);
+	imgCornersCircled.mat = img.mat.clone();
+	for (const Point pt : corners) {
+		circle(imgCornersCircled.mat, pt, 15, Scalar(0, 0, 255), 5);
 	}
+	imgCornersCircled.name = img.name + " with corners circled";
 
-	this->wait();
+	return imgCornersCircled;
 }
 
 
@@ -423,23 +422,13 @@ Mat ThreeDimReconstruction::computeFundamentalMatrix(const vector<pair<SIFTFeatu
 		fundamentalMatrix = Up * DpTmp * Vpt;
 
 		
-		// Library TMP
-		vector<Point2f> points1(N);
-		vector<Point2f> points2(N);
-		for (int i = 0; i < N; ++i) {
-			points1[i] = matchings[i].first.keypoint.pt;
-			points2[i] = matchings[i].second.keypoint.pt;
-		}
-		Mat fundamentalMatrixTmp =
-			findFundamentalMat(points1, points2, FM_8POINT);
-		fundamentalMatrixTmp.convertTo(fundamentalMatrixTmp, CV_64FC1);
-
 		cout << "F" << fundamentalMatrix << endl;
-		cout << "Ftmp: " << fundamentalMatrixTmp << endl;
+		//cout << "Ftmp: " << fundamentalMatrixTmp << endl;
+
 	}
 
 	// Normalize F such that the last element must be 1
-	double normalizationFactor = 1.0f / fundamentalMatrix.at<double>(2, 2);
+	double normalizationFactor = 1.0 / fundamentalMatrix.at<double>(2, 2);
 	fundamentalMatrix.mul(normalizationFactor);
 
 	return fundamentalMatrix;
@@ -485,12 +474,14 @@ Mat ThreeDimReconstruction::twoViewTriangulation(const vector<pair<SIFTFeature, 
 	//cout << "W: " << W << endl;
 	//cout << "Vt: " << Vt << endl;
 
+	/*
 	Mat Diag = Mat::zeros(3, 3, CV_64F);
 	// Diag = (1 0 0; 0 1 0; 0 0 0)
 	Diag.at<double>(0, 0) = 1;
 	Diag.at<double>(1, 1) = 1;
 
 	E = U * Diag * Vt;
+	*/
 	SVD::compute(E, Wdiag, U, Vt, SVD::FULL_UV);
 	cout << "U: " << U << endl;
 	cout << "Wdiag: " << Wdiag << endl;
@@ -559,11 +550,22 @@ Mat ThreeDimReconstruction::twoViewTriangulation(const vector<pair<SIFTFeature, 
 
 	//cout << "points4D: " << points4D << endl;
 
-	Mat points3D;
+	Mat points3D, goodPoints3D;
 	convertPointsFromHomogeneous(points4D.t(), points3D);
 
-	cout << "points3D: " << points3D << endl;
+	//cout << "points3D: " << points3D << endl;
 
+	// Outlier check
+	double outlierThreshold = 20.0;
+	for (int i = 0; i < points3D.rows; ++i) {
+		Mat point3D = points3D.row(i);
+		double distance = norm(point3D);
+
+		if (distance <= outlierThreshold && point3D.at<float>(0, 2) >= 0) {
+			goodPoints3D.push_back(point3D);
+		}
+	}
+	return goodPoints3D;
 	/*
 	// 5-point algorithm
 	Mat A(5, 9, CV_64FC1);
@@ -611,10 +613,40 @@ Mat ThreeDimReconstruction::twoViewTriangulation(const vector<pair<SIFTFeature, 
 	
 }
 
+
+void ThreeDimReconstruction::writePly(const string& file, const Mat& points3D) {
+	ofstream of(file);
+	if (of.is_open())
+	{
+		of << "ply" << endl;
+		of << "format ascii 1.0" << endl;
+		of << "comment VTK generated PLY File" << endl;
+		of << "obj_info vtkPolyData points and polygons: vtk4.0" << endl;
+		of << "element vertex " << points3D.rows << endl;
+		of << "property float x" << endl;
+		of << "property float y" << endl;
+		of << "property float z" << endl;
+		of << "element face 0" << endl;
+		of << "property list uchar int vertex_indices" << endl;
+		of << "end_header" << endl;
+
+		for (int i = 0; i < points3D.rows; ++i) {
+			of << points3D.at<float>(i, 0) << "\t" << points3D.at<float>(i, 1) << "\t" << points3D.at<float>(i, 2) << endl;
+		}
+		of.close();
+	}
+	else cout << "Unable to open file " + file;
+}
+
 void ThreeDimReconstruction::process(void) {
 	vector<vector<SIFTFeature>> featuresOfImages;
 
 	for (const Img& img : this->images) {
+		// Harris Corner
+		Img visualizeCornersImg =  processHarrisCorner(img);
+		visualizeCornersImg.show();
+		imwrite(IMAGE_WRITE_FOLDER + visualizeCornersImg.name + ".jpg", visualizeCornersImg.mat);
+		// SIFT
 		SIFTFeature feature;
 		vector<SIFTFeature> features = FeatureDetectors::detectSIFT(img);
 
@@ -634,7 +666,46 @@ void ThreeDimReconstruction::process(void) {
 		cout << matchings.size() << " features matched!" << endl;
 
 		
-		matchings.resize(30);	// Top-30 matches
+		matchings.resize(100);	// Top-100 matches
+
+		
+		int outlierCount = 0, iteration = 0;
+		Mat fundamentalMatrix;
+		do {
+			outlierCount = 0;
+			fundamentalMatrix = computeFundamentalMatrix(matchings, 20);
+			cout << "F: " << fundamentalMatrix << endl;
+		
+			// Check top 10 results
+			for (auto it = matchings.begin(); it != matchings.end(); ) {
+				const auto& matching = *it;
+				bool outlier = false;
+				Mat up(3, 1, CV_64FC1), u(3, 1, CV_64FC1);
+				up.at<double>(0, 0) = matching.second.keypoint.pt.x;
+				up.at<double>(1, 0) = matching.second.keypoint.pt.y;
+				up.at<double>(2, 0) = 1;
+				u.at<double>(0, 0) = matching.first.keypoint.pt.x;
+				u.at<double>(1, 0) = matching.first.keypoint.pt.y;
+				u.at<double>(2, 0) = 1;
+
+				Mat uptFu = up.t() * fundamentalMatrix * u;
+				if (abs(uptFu.at<double>(0, 0)) > 1.0) {
+					outlier = true;
+					++outlierCount;
+				}
+
+				if (outlier) {
+					// Remove outlier
+					cout << "Outlier: u'tFu: " << uptFu << endl;
+					matchings.erase(it);
+				}
+				else {
+					++it;
+				}
+			}
+			++iteration;
+		}
+		while (outlierCount > 0 && iteration <= 5);
 
 		for (auto& matching : matchings) {
 			//printf("%f\n", sqrt(euclideanDistanceSquared(matching.first.descriptor, matching.second.descriptor)));
@@ -643,32 +714,24 @@ void ThreeDimReconstruction::process(void) {
 		Img visualizeMatchingsImg = visualizeMatchings(this->images[0], this->images[1], matchings);
 		visualizeMatchingsImg.show(0.9);
 		imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingsImg.name + ".jpg", visualizeMatchingsImg.mat);
-		
-		
-		// 8-point algorithm
-		Mat fundamentalMatrix = computeFundamentalMatrix(matchings, 20);
-		cout << "F: " << fundamentalMatrix << endl;
-		
-		// Check top 10 results
-		for (auto& matching : matchings) {
-			Mat up(3, 1, CV_64FC1), u(3, 1, CV_64FC1);
-			up.at<double>(0, 0) = matching.second.keypoint.pt.x;
-			up.at<double>(1, 0) = matching.second.keypoint.pt.y;
-			up.at<double>(2, 0) = 1;
-			u.at<double>(0, 0) = matching.first.keypoint.pt.x;
-			u.at<double>(1, 0) = matching.first.keypoint.pt.y;
-			u.at<double>(2, 0) = 1;
 
-			//cout << "u'tFu: " << up.t() * fundamentalMatrix * u << endl; 
-		}
-		
 
 		Img visualizeMatchingWithEpipolarLinesImg = visualizeMatchingWithEpipolarLines(this->images[0], this->images[1], matchings, fundamentalMatrix);
 		visualizeMatchingWithEpipolarLinesImg.show(0.9);
 		imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingWithEpipolarLinesImg.name + ".jpg", visualizeMatchingWithEpipolarLinesImg.mat);
 
-		twoViewTriangulation(matchings, fundamentalMatrix);
 
+		
+		vector<Point2f> points1(matchings.size());
+		vector<Point2f> points2(matchings.size());
+		for (int i = 0; i < matchings.size(); ++i) {
+			points1[i] = matchings[i].first.keypoint.pt;
+			points2[i] = matchings[i].second.keypoint.pt;
+		}
+		fundamentalMatrix = findFundamentalMat(points1, points2, FM_RANSAC);
+
+		Mat points3D = twoViewTriangulation(matchings, fundamentalMatrix);
+		writePly(PLY_WRITE_FOLDER + this->images[0].name + "_" + this->images[1].name + ".ply", points3D);
 		this->wait();
 	}
 
