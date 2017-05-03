@@ -118,12 +118,12 @@ ThreeDimReconstruction::ThreeDimReconstruction(char* imgPath1, char* imgPath2)
 	this->images.push_back(ThreeDimReconstruction::Img(imgPath1));
 	this->images.push_back(ThreeDimReconstruction::Img(imgPath2));
 
-	
+
 	printf("Loaded files successfully!\n");
 	for (int i = 0; i < this->images.size(); ++i) {
 		printf("img[%d]: %d * %d\n", i, this->images[i].mat.cols, this->images[i].mat.rows);
 	}
-	
+
 }
 
 ThreeDimReconstruction::ThreeDimReconstruction(const char* const * imgPaths, int count) {
@@ -132,6 +132,8 @@ ThreeDimReconstruction::ThreeDimReconstruction(const char* const * imgPaths, int
 	}
 	printf("Loaded %d files successfully!\n", count);
 }
+
+
 
 
 
@@ -156,7 +158,7 @@ ThreeDimReconstruction::Img ThreeDimReconstruction::processHarrisCorner(const Im
 	this->show(imgFiltered);
 	this->wait();
 	*/
-	
+
 	//this->wait();
 	//const int imgCount = this->images.size();
 	//vector<Point> imgCorners;
@@ -195,7 +197,7 @@ ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchings(const Img
 	Size matchingImgsize(img1.mat.size().width + img2.mat.size().width, max(img1.mat.size().height, img2.mat.size().height));
 	matchingImg.mat = Mat::zeros(matchingImgsize, CV_8UC3);	// Creating image of size
 
-	// Copy images to the matching image
+															// Copy images to the matching image
 	img1.mat.copyTo(matchingImg.mat(Rect(0, 0, img1.mat.size().width, img1.mat.size().height)));
 	img2.mat.copyTo(matchingImg.mat(Rect(img1.mat.size().width, 0, img2.mat.size().width, img2.mat.size().height)));
 
@@ -222,7 +224,7 @@ ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchingWithEpipola
 	Size matchingImgsize(img1.mat.size().width + img2.mat.size().width, max(img1.mat.size().height, img2.mat.size().height));
 	matchingImg.mat = Mat::zeros(matchingImgsize, CV_8UC3);	// Creating image of size
 
-	// Copy images to the matching image
+															// Copy images to the matching image
 	img1.mat.copyTo(matchingImg.mat(Rect(0, 0, img1.mat.cols, img1.mat.rows)));
 	img2.mat.copyTo(matchingImg.mat(Rect(img1.mat.cols, 0, img2.mat.cols, img2.mat.rows)));
 
@@ -232,7 +234,7 @@ ThreeDimReconstruction::Img ThreeDimReconstruction::visualizeMatchingWithEpipola
 	for (const pair<SIFTFeature, SIFTFeature>& matching : matchings) {
 		const SIFTFeature& feature1 = matching.first;
 		const SIFTFeature& feature2 = matching.second;
-		const Scalar color(128*(count & 0x4) + 127, 128 *(count & 0x2) + 127, 128 * (count & 0x1) + 127);
+		const Scalar color(128 * (count & 0x4) + 127, 128 * (count & 0x2) + 127, 128 * (count & 0x1) + 127);
 
 		// Circle feature1
 		circle(matchingImg.mat, feature1.keypoint.pt, 20, color, -1);
@@ -274,7 +276,7 @@ vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatchi
 
 		double ratio = feature.keypoint.size / img2MatchedFeature.keypoint.size;
 
-		if (nearestNeighbor(img2MatchedFeature, features1) == feature1Id && 
+		if (nearestNeighbor(img2MatchedFeature, features1) == feature1Id &&
 			ratio >= RATIO_REQUIRED && ratio <= 1.0 / RATIO_REQUIRED	// Ratio test passed
 			) {
 			//printf("Ratio test: %f\t%f\n", feature.keypoint.size, img2MatchedFeature.keypoint.size);
@@ -283,24 +285,6 @@ vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatchi
 
 
 	}
-
-	// Outlier check by fundamental matrix ransac 
-	vector<Point2f> points1(matchings.size());
-	vector<Point2f> points2(matchings.size());
-	for (int i = 0; i < matchings.size(); ++i) {
-		points1[i] = matchings[i].first.keypoint.pt;
-		points2[i] = matchings[i].second.keypoint.pt;
-	}
-	vector<uchar> ransacMask;
-	findFundamentalMat(points1, points2, ransacMask, FM_RANSAC);
-	
-	// Delete outliers
-	for (int i = matchings.size() - 1; i >= 0; --i) {
-		if (ransacMask[i] != 1) {
-			//matchings.erase(matchings.begin() + i);
-		}
-	}
-
 
 	// Sort by distance diff
 	sort(matchings.begin(), matchings.end(), [](const pair<SIFTFeature, SIFTFeature>& prev, const pair<SIFTFeature, SIFTFeature>& next) {
@@ -334,7 +318,7 @@ Mat ThreeDimReconstruction::computeFundamentalMatrix(const vector<pair<SIFTFeatu
 		// A(i) = (xpx, xpy, xp, ypx, ypy, yp, x, y, 1)
 		const double u[3] = { point1.x, point1.y, 1 };
 		const double up[3] = { point2.x, point2.y, 1 };
-		
+
 
 		for (int i = 0; i < 3; ++i) {
 			for (int j = 0; j < 3; ++j) {
@@ -349,7 +333,7 @@ Mat ThreeDimReconstruction::computeFundamentalMatrix(const vector<pair<SIFTFeatu
 	Mat U, D, Vt;
 	SVD::compute(A, D, U, Vt);
 
-	
+
 	// Get the column of the the smallest singular value of V, i.e. the row of least v of Vt
 	// In fact, it is the last row of Vt
 	cout << "U:" << endl << U << endl;
@@ -374,8 +358,8 @@ Mat ThreeDimReconstruction::computeFundamentalMatrix(const vector<pair<SIFTFeatu
 		// Consider the cubic equation ax^3 + bx^2t + cxt^2 + dt^3 = 0
 		// by det(x fa + t fb) = 0
 		double a = 0, b = 0, c = 0, d = 0;	// Coefficient of the cubic equation
-		// a: Determinant of all elements from fa
-		a = determinant(fa);	
+											// a: Determinant of all elements from fa
+		a = determinant(fa);
 		// b: Determinant of TWO elements from fa + ONE element from fb
 		for (int i = 0; i < 3; ++i) {
 			Mat faTmp = fa.clone();
@@ -399,7 +383,7 @@ Mat ThreeDimReconstruction::computeFundamentalMatrix(const vector<pair<SIFTFeatu
 		}
 
 		// Determinant of all elements from fb
-		d = determinant(fb);	
+		d = determinant(fb);
 
 		double coefficients[4] = { a, b, c, d };
 		double roots[3];
@@ -413,7 +397,8 @@ Mat ThreeDimReconstruction::computeFundamentalMatrix(const vector<pair<SIFTFeatu
 		// <=> F' = (x/t) fa + fb, to be normalized
 		fundamentalMatrix = fa.mul(roots[0]) + fb;
 
-	} else if (N >= 8) {
+	}
+	else if (N >= 8) {
 		// 8-point algorithm
 		// F' = the last column (i.e., with least singular value) of V
 		Mat FpTmp = Vt.row(Vt.rows - 1).t();
@@ -445,7 +430,7 @@ Mat ThreeDimReconstruction::computeFundamentalMatrix(const vector<pair<SIFTFeatu
 		// F = U'D''V't
 		fundamentalMatrix = Up * DpTmp * Vpt;
 
-		
+
 		cout << "F" << fundamentalMatrix << endl;
 		//cout << "Ftmp: " << fundamentalMatrixTmp << endl;
 
@@ -503,7 +488,6 @@ Mat ThreeDimReconstruction::twoViewTriangulation(const vector<pair<SIFTFeature, 
 	// Diag = (1 0 0; 0 1 0; 0 0 0)
 	Diag.at<double>(0, 0) = 1;
 	Diag.at<double>(1, 1) = 1;
-
 	E = U * Diag * Vt;
 	*/
 	SVD::compute(E, Wdiag, U, Vt, SVD::FULL_UV);
@@ -594,47 +578,37 @@ Mat ThreeDimReconstruction::twoViewTriangulation(const vector<pair<SIFTFeature, 
 	// 5-point algorithm
 	Mat A(5, 9, CV_64FC1);
 	for (int n = 0; n < 5; ++n) {
-		Point2f point1 = matchings[n].first.keypoint.pt;
-		Point2f point2 = matchings[n].second.keypoint.pt;
-
-		Mat u(3, 1, CV_64FC1, { point1.x, point1.y, 1 });		// (x, y, 1)
-		Mat up(3, 1, CV_64FC1, { point2.x, point2.y, 1 });		// (x', y', 1)
-
-		u.at<double>(0, 0) = point1.x;
-		u.at<double>(1, 0) = point1.y;
-		u.at<double>(2, 0) = 1;
-		up.at<double>(0, 0) = point2.x;
-		up.at<double>(1, 0) = point2.y;
-		up.at<double>(2, 0) = 1;
-
-		cout << "u: " << u << endl;
-
-		// x = K-1u
-		Mat x = KInv * u;
-		// x' = K'-1u'
-		Mat xp = KpInv * up;
-
-		for (int i = 0; i < 3; ++i) {
-			for (int j = 0; j < 3; ++j) {
-				A.at<double>(n, i * 3 + j) = xp.at<double>(i, 0) * x.at<double>(j, 0);
-			}
-		}
+	Point2f point1 = matchings[n].first.keypoint.pt;
+	Point2f point2 = matchings[n].second.keypoint.pt;
+	Mat u(3, 1, CV_64FC1, { point1.x, point1.y, 1 });		// (x, y, 1)
+	Mat up(3, 1, CV_64FC1, { point2.x, point2.y, 1 });		// (x', y', 1)
+	u.at<double>(0, 0) = point1.x;
+	u.at<double>(1, 0) = point1.y;
+	u.at<double>(2, 0) = 1;
+	up.at<double>(0, 0) = point2.x;
+	up.at<double>(1, 0) = point2.y;
+	up.at<double>(2, 0) = 1;
+	cout << "u: " << u << endl;
+	// x = K-1u
+	Mat x = KInv * u;
+	// x' = K'-1u'
+	Mat xp = KpInv * up;
+	for (int i = 0; i < 3; ++i) {
+	for (int j = 0; j < 3; ++j) {
+	A.at<double>(n, i * 3 + j) = xp.at<double>(i, 0) * x.at<double>(j, 0);
 	}
-
+	}
+	}
 	// Apply SVD: A = UDVt
 	Mat U, D, Vt;
 	SVD::compute(A, D, U, Vt);
-
-
-
 	// Get the column of the the smallest singular value of V, i.e. the row of least v of Vt
 	// In fact, it is the last row of Vt
 	cout << "U:" << endl << U << endl;
 	cout << "D:" << endl << D << endl;
 	cout << "Vt:" << endl << Vt << endl;
-
 	*/
-	
+
 }
 
 
@@ -667,7 +641,7 @@ void ThreeDimReconstruction::process(void) {
 
 	for (const Img& img : this->images) {
 		// Harris Corner
-		Img visualizeCornersImg =  processHarrisCorner(img);
+		Img visualizeCornersImg = processHarrisCorner(img);
 		visualizeCornersImg.show();
 		imwrite(IMAGE_WRITE_FOLDER + visualizeCornersImg.name + ".jpg", visualizeCornersImg.mat);
 		// SIFT
@@ -684,18 +658,67 @@ void ThreeDimReconstruction::process(void) {
 
 	if (this->images.size() >= 2) {
 
-		vector<pair<SIFTFeature, SIFTFeature>> matchings = SIFTFeatureMatching(this->images[0], featuresOfImages[0], this->images[1], featuresOfImages[1]);
-		vector<pair<SIFTFeature, SIFTFeature>> topMatchings = matchings;
+		vector<pair<SIFTFeature, SIFTFeature>> allMatchings = SIFTFeatureMatching(this->images[0], featuresOfImages[0], this->images[1], featuresOfImages[1]);
+		vector<pair<SIFTFeature, SIFTFeature>> matchings = allMatchings;
 		//visualizeFeatures(this->images[0], featuresOfImages[0]);
 		//visualizeFeatures(this->images[1], featuresOfImages[1]);
-		cout << matchings.size() << " features matched!" << endl;
+		cout << allMatchings.size() << " features matched!" << endl;
 
-		
-		topMatchings.resize(50);	// Top-50 matches
 
-		
+		matchings.resize(200);	// Top-100 matches
+
 
 		int outlierCount = 0, iteration = 0;
+		Mat fundamentalMatrix;
+		do {
+			outlierCount = 0;
+			fundamentalMatrix = computeFundamentalMatrix(matchings, 20);
+			cout << "F: " << fundamentalMatrix << endl;
+
+			// Check top results
+			for (auto it = matchings.begin(); it != matchings.end(); ) {
+				const auto& matching = *it;
+				bool outlier = false;
+				Mat up(3, 1, CV_64FC1), u(3, 1, CV_64FC1);
+				up.at<double>(0, 0) = matching.second.keypoint.pt.x;
+				up.at<double>(1, 0) = matching.second.keypoint.pt.y;
+				up.at<double>(2, 0) = 1;
+				u.at<double>(0, 0) = matching.first.keypoint.pt.x;
+				u.at<double>(1, 0) = matching.first.keypoint.pt.y;
+				u.at<double>(2, 0) = 1;
+
+				Mat uptFu = up.t() * fundamentalMatrix * u;
+				if (abs(uptFu.at<double>(0, 0)) > 1.0) {
+					outlier = true;
+					++outlierCount;
+				}
+
+				if (outlier) {
+					// Remove outlier
+					cout << "Outlier: u'tFu: " << uptFu << endl;
+					matchings.erase(it);
+				}
+				else {
+					++it;
+				}
+			}
+			++iteration;
+		} while (outlierCount > 0 && iteration <= 5);
+
+		for (auto& matching : matchings) {
+			//printf("%f\n", sqrt(euclideanDistanceSquared(matching.first.descriptor, matching.second.descriptor)));
+			cout << matching.first.keypoint.pt << "\t" << matching.second.keypoint.pt << endl;
+		}
+		Img visualizeMatchingsImg = visualizeMatchings(this->images[0], this->images[1], matchings);
+		visualizeMatchingsImg.show(0.9);
+		imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingsImg.name + ".jpg", visualizeMatchingsImg.mat);
+
+
+		Img visualizeMatchingWithEpipolarLinesImg = visualizeMatchingWithEpipolarLines(this->images[0], this->images[1], matchings, fundamentalMatrix);
+		visualizeMatchingWithEpipolarLinesImg.show(0.9);
+		imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingWithEpipolarLinesImg.name + ".jpg", visualizeMatchingWithEpipolarLinesImg.mat);
+
+
 
 		vector<Point2f> points1(matchings.size());
 		vector<Point2f> points2(matchings.size());
@@ -703,65 +726,14 @@ void ThreeDimReconstruction::process(void) {
 			points1[i] = matchings[i].first.keypoint.pt;
 			points2[i] = matchings[i].second.keypoint.pt;
 		}
-		Mat fundamentalMatrixRansac = findFundamentalMat(points1, points2, FM_RANSAC);
-		Mat fundamentalMatrix = computeFundamentalMatrix(matchings, 20);	// Change >= 8 for eight-point algorithm, 7 for seven-point algorithm;
+		fundamentalMatrix = findFundamentalMat(points1, points2, FM_RANSAC);
 
-
-		// Remove outlier by checking u'tFu
-		outlierCount = 0;
-		for (auto it = matchings.begin(); it != matchings.end(); ) {
-			const auto& matching = *it;
-			bool outlier = false;
-			Mat up(3, 1, CV_64FC1), u(3, 1, CV_64FC1);
-			up.at<double>(0, 0) = matching.second.keypoint.pt.x;
-			up.at<double>(1, 0) = matching.second.keypoint.pt.y;
-			up.at<double>(2, 0) = 1;
-			u.at<double>(0, 0) = matching.first.keypoint.pt.x;
-			u.at<double>(1, 0) = matching.first.keypoint.pt.y;
-			u.at<double>(2, 0) = 1;
-
-			Mat uptFu = up.t() * fundamentalMatrix * u;
-			if (abs(uptFu.at<double>(0, 0)) > 1.0) {
-				outlier = true;
-				++outlierCount;
-			}
-
-			if (outlier) {
-				// Remove outlier
-				cout << "Outlier: u'tFu: " << uptFu << endl;
-				matchings.erase(it);
-			}
-			else {
-				++it;
-			}
-		}
-		++iteration;
-
-		for (auto& matching : topMatchings) {
-			//printf("%f\n", sqrt(euclideanDistanceSquared(matching.first.descriptor, matching.second.descriptor)));
-			cout << matching.first.keypoint.pt << "\t" << matching.second.keypoint.pt << endl;
-		}
-		Img visualizeMatchingsImg = visualizeMatchings(this->images[0], this->images[1], topMatchings);
-		visualizeMatchingsImg.show(0.9);
-		imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingsImg.name + ".jpg", visualizeMatchingsImg.mat);
-
-
-		Img visualizeMatchingWithEpipolarLinesImg = visualizeMatchingWithEpipolarLines(this->images[0], this->images[1], topMatchings, fundamentalMatrix);
-		visualizeMatchingWithEpipolarLinesImg.show(0.9);
-		imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingWithEpipolarLinesImg.name + ".jpg", visualizeMatchingWithEpipolarLinesImg.mat);
-
-
-		
-		
-		
-
-		Mat points3D = twoViewTriangulation(matchings, fundamentalMatrixRansac);
+		Mat points3D = twoViewTriangulation(allMatchings, fundamentalMatrix);
 		writePly(PLY_WRITE_FOLDER + this->images[0].name + "_" + this->images[1].name + ".ply", points3D);
 		this->wait();
 	}
 
-	
-	
+
+
 
 }
-
