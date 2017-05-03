@@ -289,11 +289,15 @@ vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatchi
 	return matchings;
 }
 
+
+
 // Output the fundamental matrix F
-Mat ThreeDimReconstruction::eightPointAlgorithm(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const int N) {
+// If N == 7, seven-point algorithm is used
+// If N >= 8, eight-point algorithm is used
+Mat ThreeDimReconstruction::computeFundamentalMatrix(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const int N) {
 	Mat fundamentalMatrix(3, 3, CV_64FC1);
 
-	if (N < 8 || matchings.size() < N) {
+	if (N < 7 || matchings.size() < N) {
 		throw Exception();
 	}
 
@@ -316,7 +320,7 @@ Mat ThreeDimReconstruction::eightPointAlgorithm(const vector<pair<SIFTFeature, S
 		}
 	}
 
-	cout << A << endl;
+	cout << "A:" << A << endl;
 
 	// Apply SVD: A = UDVt
 	Mat U, D, Vt;
@@ -325,56 +329,119 @@ Mat ThreeDimReconstruction::eightPointAlgorithm(const vector<pair<SIFTFeature, S
 	
 	// Get the column of the the smallest singular value of V, i.e. the row of least v of Vt
 	// In fact, it is the last row of Vt
+	cout << "U:" << endl << U << endl;
 	cout << "D:" << endl << D << endl;
 	cout << "Vt:" << endl << Vt << endl;
 
-	// F' = the last column (i.e., with least singular value) of V
-	Mat FpTmp = Vt.row(Vt.rows - 1).t();
-	// Remake Fp to be from 1 x 9 back to 3 x 3
-	Mat Fp(3, 3, CV_64FC1);
+	if (N == 7) {
+		// 7-point algorithm
+		// Get the TWO singular vectors fa, fb of the smallest singular value
+		Mat faTmp = Vt.row(Vt.rows - 1).t();
+		Mat fbTmp = Vt.row(Vt.rows - 2).t();
+		Mat fa(3, 3, CV_64FC1), fb(3, 3, CV_64FC1);;
 
-	for (int i = 0; i < 3; ++i) {
-		for (int j = 0; j < 3; ++j) {
-			Fp.at<double>(i, j) = FpTmp.at<double>(i * 3 + j, 0);
+		// Remake fa and fb from 1 x 9 back to 3 x 3
+		for (int i = 0; i < 3; ++i) {
+			for (int j = 0; j < 3; ++j) {
+				fa.at<double>(i, j) = faTmp.at<double>(i * 3 + j, 0);
+				fb.at<double>(i, j) = fbTmp.at<double>(i * 3 + j, 0);
+			}
 		}
+
+		// Consider the cubic equation ax^3 + bx^2t + cxt^2 + dt^3 = 0
+		// by det(x fa + t fb) = 0
+		double a = 0, b = 0, c = 0, d = 0;	// Coefficient of the cubic equation
+		// a: Determinant of all elements from fa
+		a = determinant(fa);	
+		// b: Determinant of TWO elements from fa + ONE element from fb
+		for (int i = 0; i < 3; ++i) {
+			Mat faTmp = fa.clone();
+
+			// Get one row from fb
+			for (int p = 0; p < 3; ++p) {
+				faTmp.at<double>(i, p) = fb.at<double>(i, p);
+			}
+
+			b += determinant(faTmp);
+		}
+
+		// c: Determinant of TWO elements from fb + ONE element from fa
+		for (int i = 0; i < 3; ++i) {
+			Mat fbTmp = fa.clone();
+			// Get one row from fb
+			for (int p = 0; p < 3; ++p) {
+				fbTmp.at<double>(i, p) = fa.at<double>(i, p);
+			}
+			c += determinant(fbTmp);
+		}
+
+		// Determinant of all elements from fb
+		d = determinant(fb);	
+
+		double coefficients[4] = { a, b, c, d };
+		double roots[3];
+		solveCubic(Mat(1, 4, CV_64F, coefficients), Mat(1, 3, CV_64F, roots));
+
+		// The root is x/t
+		cout << "fa: " << fa << endl;
+		cout << "fb: " << fb << endl;
+		cout << "roots: " << roots[0] << "\t" << roots[1] << "\t" << roots[2] << endl;
+		// F = x fa + t fb
+		// <=> F' = (x/t) fa + fb, to be normalized
+		fundamentalMatrix = fa.mul(roots[0]) + fb;
+
+	} else if (N >= 8) {
+		// 8-point algorithm
+		// F' = the last column (i.e., with least singular value) of V
+		Mat FpTmp = Vt.row(Vt.rows - 1).t();
+		// Remake Fp to be from 1 x 9 back to 3 x 3
+		Mat Fp(3, 3, CV_64FC1);
+
+		for (int i = 0; i < 3; ++i) {
+			for (int j = 0; j < 3; ++j) {
+				Fp.at<double>(i, j) = FpTmp.at<double>(i * 3 + j, 0);
+			}
+		}
+
+		cout << "Fp:" << endl << Fp << endl;
+
+		// Apply SVD again: Fp = UpDpVpt
+		Mat Up, Dp, Vpt;
+		SVD::compute(Fp, Dp, Up, Vpt, SVD::FULL_UV);
+
+		Mat DpTmp = Mat::zeros(3, 3, CV_64FC1);
+		DpTmp.at<double>(0, 0) = Dp.at<double>(0, 0);
+		DpTmp.at<double>(1, 1) = Dp.at<double>(1, 0);
+		// Set the value of the least singular value to be 0 (i.e., the last element)
+		//DpTmp.at<double>(2, 2) = Dp.at<double>(2, 0);
+
+		cout << "Up: " << Up << endl;
+		cout << "Dp: " << DpTmp << endl;
+		cout << "Vpt: " << Vpt << endl;
+
+		// F = U'D''V't
+		fundamentalMatrix = Up * DpTmp * Vpt;
+
+		
+		// Library TMP
+		vector<Point2f> points1(N);
+		vector<Point2f> points2(N);
+		for (int i = 0; i < N; ++i) {
+			points1[i] = matchings[i].first.keypoint.pt;
+			points2[i] = matchings[i].second.keypoint.pt;
+		}
+		Mat fundamentalMatrixTmp =
+			findFundamentalMat(points1, points2, FM_8POINT);
+		fundamentalMatrixTmp.convertTo(fundamentalMatrixTmp, CV_64FC1);
+
+		cout << "F" << fundamentalMatrix << endl;
+		cout << "Ftmp: " << fundamentalMatrixTmp << endl;
 	}
-
-	cout << "Fp:" << endl << Fp << endl;
-
-	// Apply SVD again: Fp = UpDpVpt
-	Mat Up, Dp, Vpt;
-	SVD::compute(Fp, Dp, Up, Vpt, SVD::FULL_UV);
-
-	Mat DpTmp = Mat::zeros(3, 3, CV_64FC1);
-	DpTmp.at<double>(0, 0) = Dp.at<double>(0, 0);
-	DpTmp.at<double>(1, 1) = Dp.at<double>(1, 0);
-	// Set the value of the least singular value to be 0 (i.e., the last element)
-	//DpTmp.at<double>(2, 2) = Dp.at<double>(2, 0);
-
-	cout << "Up: " << Up << endl;
-	cout << "Dp: " << DpTmp << endl;
-	cout << "Vpt: " << Vpt << endl;
-
-	// F = U'D''V't
-	fundamentalMatrix = Up * DpTmp * Vpt;
 
 	// Normalize F such that the last element must be 1
 	double normalizationFactor = 1.0f / fundamentalMatrix.at<double>(2, 2);
 	fundamentalMatrix.mul(normalizationFactor);
 
-	// Library TMP
-	vector<Point2f> points1(N);
-	vector<Point2f> points2(N);
-	for (int i = 0; i < N; ++i) {
-		points1[i] = matchings[i].first.keypoint.pt;
-		points2[i] = matchings[i].second.keypoint.pt;
-	}
-	Mat fundamentalMatrixTmp =
-		findFundamentalMat(points1, points2, FM_8POINT);
-	fundamentalMatrixTmp.convertTo(fundamentalMatrixTmp, CV_64FC1);
-
-	cout << "F" << fundamentalMatrix << endl;
-	cout << "Ftmp: " << fundamentalMatrixTmp << endl;
 	return fundamentalMatrix;
 }
 
@@ -399,7 +466,7 @@ void ThreeDimReconstruction::process(void) {
 		cout << matchings.size() << " features matched!" << endl;
 
 		
-		matchings.resize(15);	// Top-15 matches
+		matchings.resize(7);	// Top-15 matches
 
 		for (auto& matching : matchings) {
 			//printf("%f\n", sqrt(euclideanDistanceSquared(matching.first.descriptor, matching.second.descriptor)));
@@ -411,7 +478,7 @@ void ThreeDimReconstruction::process(void) {
 		
 		
 		// 8-point algorithm
-		Mat fundamentalMatrix = eightPointAlgorithm(matchings, 15);
+		Mat fundamentalMatrix = computeFundamentalMatrix(matchings, 7);
 		cout << "F: " << fundamentalMatrix << endl;
 		
 		// Check top 10 results
@@ -429,7 +496,9 @@ void ThreeDimReconstruction::process(void) {
 		}
 		
 
-		visualizeMatchingWithEpipolarLines(this->images[0], this->images[1], matchings, fundamentalMatrix).show(0.9);
+		Img visualizeMatchingWithEpipolarLinesImg = visualizeMatchingWithEpipolarLines(this->images[0], this->images[1], matchings, fundamentalMatrix);
+		visualizeMatchingWithEpipolarLinesImg.show(0.9);
+		imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingWithEpipolarLinesImg.name + ".jpg", visualizeMatchingWithEpipolarLinesImg.mat);
 
 	}
 

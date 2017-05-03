@@ -51,7 +51,7 @@ public:
 	Img visualizeMatchings(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>>& matchings);
 	Img visualizeMatchingWithEpipolarLines(const Img& img1, const Img& img2, const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const Mat& F);
 	vector<pair<SIFTFeature, SIFTFeature>> SIFTFeatureMatching(const Img& img1, const vector<SIFTFeature> features1, const Img& img2, const vector<SIFTFeature> features2);
-	Mat eightPointAlgorithm(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const int N = 8);
+	Mat computeFundamentalMatrix(const vector<pair<SIFTFeature, SIFTFeature>>& matchings, const int N = 8);
 	void process(void);
 	void wait(void) const;
 	
