@@ -47,7 +47,8 @@ int main(int argc, char** argv)
 	ThreeDimReconstruction* threeDimRec = NULL;
 	if (argc < 3)
 	{
-		char* files[] = { "0005.png", "0006.png"};
+		char* files[] = { "0003.png", "0004.png", "0005.png", "0006.png", "0007.png", "0008.png", "0009.png", "0010.png" };
+
 		threeDimRec = new ThreeDimReconstruction(files, sizeof(files) / sizeof(char*));
 	}
 	else {

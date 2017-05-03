@@ -679,7 +679,7 @@ void ThreeDimReconstruction::process(void) {
 	for (const Img& img : this->images) {
 		// Harris Corner
 		Img visualizeCornersImg = processHarrisCorner(img);
-		visualizeCornersImg.show();
+		//visualizeCornersImg.show();
 		imwrite(IMAGE_WRITE_FOLDER + visualizeCornersImg.name + ".jpg", visualizeCornersImg.mat);
 		// SIFT
 		SIFTFeature feature;
@@ -688,7 +688,7 @@ void ThreeDimReconstruction::process(void) {
 		printf("%d SIFT feature(s) found in %s\n", features.size(), img.name);
 
 		Img visualizeFeaturesImg = visualizeFeatures(img, features);
-		visualizeFeaturesImg.show();
+		//visualizeFeaturesImg.show();
 		imwrite(IMAGE_WRITE_FOLDER + visualizeFeaturesImg.name + ".jpg", visualizeFeaturesImg.mat);
 		featuresOfImages.push_back(features);
 	}
@@ -762,8 +762,9 @@ void ThreeDimReconstruction::process(void) {
 				//cout << matching.first.keypoint.pt << "\t" << matching.second.keypoint.pt << endl;
 			}
 
-			vector<Matching> matchingToVisualize = matchings;
-			matchingToVisualize.resize(fundamentalMatrixN);
+			vector<Matching> matchingsToVisualize = matchings, matchings7ToVisualize = matchings;
+			matchingsToVisualize.resize(fundamentalMatrixN);
+			matchings7ToVisualize.resize(7);
 
 			Img visualizeMatchingsImg = 
 				visualizeMatchings(this->images[imgI], this->images[imgI+1], matchings);
@@ -772,15 +773,15 @@ void ThreeDimReconstruction::process(void) {
 
 
 			Img visualizeMatchingWithEpipolarLinesImg = 
-				visualizeMatchingWithEpipolarLines(this->images[imgI], this->images[imgI+1], matchingToVisualize, fundamentalMatrix);
+				visualizeMatchingWithEpipolarLines(this->images[imgI], this->images[imgI+1], matchingsToVisualize, fundamentalMatrix);
 			visualizeMatchingWithEpipolarLinesImg.show(0.9);
 			imwrite(IMAGE_WRITE_FOLDER + visualizeMatchingWithEpipolarLinesImg.name + ".jpg", visualizeMatchingWithEpipolarLinesImg.mat);
 
 
 			Img visualizeMatching7PtsWithEpipolarLinesImg =
-				visualizeMatchingWithEpipolarLines(this->images[imgI], this->images[imgI + 1], matchings, fundamentalMatrix7Pts);
+				visualizeMatchingWithEpipolarLines(this->images[imgI], this->images[imgI + 1], matchings7ToVisualize, fundamentalMatrix7Pts);
 			//visualizeMatching7PtsWithEpipolarLinesImg.show(0.9);
-			imwrite(IMAGE_WRITE_FOLDER + visualizeMatching7PtsWithEpipolarLinesImg.name + ".jpg", visualizeMatching7PtsWithEpipolarLinesImg.mat);
+			imwrite(IMAGE_WRITE_FOLDER + visualizeMatching7PtsWithEpipolarLinesImg.name + "(7).jpg", visualizeMatching7PtsWithEpipolarLinesImg.mat);
 
 
 
