@@ -277,10 +277,16 @@ vector<pair<SIFTFeature, SIFTFeature>> ThreeDimReconstruction::SIFTFeatureMatchi
 		double ratio = feature.keypoint.size / img2MatchedFeature.keypoint.size;
 
 		if (nearestNeighbor(img2MatchedFeature, features1) == feature1Id &&
-			ratio >= RATIO_REQUIRED && ratio <= 1.0 / RATIO_REQUIRED	// Ratio test passed
+			ratio >= RATIO_REQUIRED && ratio <= 1.0 / RATIO_REQUIRED // Ratio test passed 
 			) {
+
+			double imageDistance = norm(feature.keypoint.pt - img2MatchedFeature.keypoint.pt);
+			//cout << "imageDistance : " << imageDistance << endl;
+
 			//printf("Ratio test: %f\t%f\n", feature.keypoint.size, img2MatchedFeature.keypoint.size);
-			matchings.push_back(make_pair(feature, img2MatchedFeature));
+			if (imageDistance <= 500) {
+				matchings.push_back(make_pair(feature, img2MatchedFeature));
+			}
 		}
 
 
@@ -665,7 +671,7 @@ void ThreeDimReconstruction::process(void) {
 		cout << allMatchings.size() << " features matched!" << endl;
 
 
-		matchings.resize(200);	// Top-100 matches
+		matchings.resize(300);	// Top-100 matches
 
 
 		int outlierCount = 0, iteration = 0;
@@ -720,11 +726,11 @@ void ThreeDimReconstruction::process(void) {
 
 
 
-		vector<Point2f> points1(matchings.size());
-		vector<Point2f> points2(matchings.size());
-		for (int i = 0; i < matchings.size(); ++i) {
-			points1[i] = matchings[i].first.keypoint.pt;
-			points2[i] = matchings[i].second.keypoint.pt;
+		vector<Point2f> points1(allMatchings.size());
+		vector<Point2f> points2(allMatchings.size());
+		for (int i = 0; i < allMatchings.size(); ++i) {
+			points1[i] = allMatchings[i].first.keypoint.pt;
+			points2[i] = allMatchings[i].second.keypoint.pt;
 		}
 		fundamentalMatrix = findFundamentalMat(points1, points2, FM_RANSAC);
 
