@@ -681,6 +681,7 @@ void ThreeDimReconstruction::process(void) {
 		Img visualizeCornersImg = processHarrisCorner(img);
 		//visualizeCornersImg.show();
 		imwrite(IMAGE_WRITE_FOLDER + visualizeCornersImg.name + ".jpg", visualizeCornersImg.mat);
+
 		// SIFT
 		SIFTFeature feature;
 		vector<SIFTFeature> features = FeatureDetectors::detectSIFT(img);
