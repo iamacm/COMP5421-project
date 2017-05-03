@@ -42,6 +42,7 @@ class ThreeDimReconstruction {
 public:
 	// Constructors
 	ThreeDimReconstruction(char* imgPath1, char* imgPath2);
+	ThreeDimReconstruction(const char* const * imgPaths, int count);
 	// Methods
 	void showOriginalImg(void) const;	// Show all images
 	Img processHarrisCorner(const Img& img);

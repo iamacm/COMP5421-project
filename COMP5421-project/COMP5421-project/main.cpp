@@ -45,18 +45,14 @@ int maintest(int argc, char** argv)
 int main(int argc, char** argv)
 {
 	ThreeDimReconstruction* threeDimRec = NULL;
-	if (argc != 3)
+	if (argc < 3)
 	{
-		threeDimRec = new ThreeDimReconstruction("0005.png", "0006.png");
-		//cout << " Usage: display_image ImageToLoadAndDisplay" << endl;
-		//return -1;
-		//delete argv;
-		//argv = new char*[3];
-		//argv[1] = "0005.png";
-		//argv[2] = "0006.png";
+		char* files[] = { "0005.png", "0006.png" };
+		threeDimRec = new ThreeDimReconstruction(files, sizeof(files) / sizeof(char*));
 	}
 	else {
-		threeDimRec = new ThreeDimReconstruction(argv[1], argv[2]);
+		const int count = argc - 1;
+		threeDimRec = new ThreeDimReconstruction(&argv[1], count);
 	}
 
 	thread t1(&ThreeDimReconstruction::showOriginalImg, threeDimRec);
